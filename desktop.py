@@ -158,6 +158,7 @@ def main():
         width=1440,
         height=920,
         min_size=(1000, 650),
+        resizable=True,
     )
 
     webview.start()

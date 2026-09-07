@@ -147,12 +147,37 @@
             width: 46%;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid var(--border);
             min-width: 0;
+            flex-shrink: 0;
+        }
+
+        #divider {
+            width: 6px;
+            flex-shrink: 0;
+            cursor: col-resize;
+            background: var(--bg-1);
+            position: relative;
+        }
+
+        #divider::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 2px;
+            width: 2px;
+            border-radius: 2px;
+            background: var(--border);
+        }
+
+        #divider:hover::after,
+        #divider.dragging::after {
+            background: var(--accent);
         }
 
         #right {
-            width: 54%;
+            flex: 1;
+            min-width: 240px;
             position: relative;
             background: var(--bg-2);
         }
@@ -260,6 +285,35 @@
             font-family: var(--font-code);
             font-size: 13.5px;
             line-height: 1.6;
+            min-height: 100px;
+        }
+
+        #params-divider,
+        #console-divider {
+            height: 6px;
+            flex-shrink: 0;
+            cursor: row-resize;
+            background: var(--bg-1);
+            position: relative;
+        }
+
+        #params-divider::after,
+        #console-divider::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 2px;
+            height: 2px;
+            border-radius: 2px;
+            background: var(--border);
+        }
+
+        #params-divider:hover::after,
+        #params-divider.dragging::after,
+        #console-divider:hover::after,
+        #console-divider.dragging::after {
+            background: var(--accent);
         }
 
         /* ---------------------------------------------------- */
@@ -481,7 +535,11 @@
                 <div id="params"></div>
             </div>
 
+            <div id="params-divider"></div>
+
             <textarea id="script" spellcheck="false"></textarea>
+
+            <div id="console-divider"></div>
 
             <div id="status-bar">
                 <span class="status-dot" id="status-dot"></span>
@@ -496,6 +554,9 @@
             </div>
 
         </div>
+
+
+        <div id="divider"></div>
 
 
         <div id="right">

@@ -8,19 +8,7 @@ import { STLLoader } from
     'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/STLLoader.js';
 
 
-// ------------------------------------------------------------
-// DEFAULT BUILD123D SCRIPT
-// ------------------------------------------------------------
-
-const defaultScript = `from build123d import *
-
-box = Box(50, 40, 20)
-
-export_stl(box, "model.stl")
-`;
-
-document.getElementById("script").value =
-    defaultScript;
+// Editor starts blank -- open a file or write your own script.
 
 
 // ------------------------------------------------------------
@@ -168,6 +156,167 @@ window.addEventListener(
 );
 
 resizeViewer();
+
+// Catches the viewer resizing for reasons other than the OS window
+// changing size -- specifically, dragging the panel divider below.
+// A plain "resize" event on window doesn't fire for that.
+new ResizeObserver(resizeViewer).observe(
+    document.getElementById("viewer")
+);
+
+
+// ------------------------------------------------------------
+// PANEL DIVIDER (drag to resize the script/viewer split)
+// ------------------------------------------------------------
+
+const divider =
+    document.getElementById("divider");
+
+const leftPanel =
+    document.getElementById("left");
+
+const layoutEl =
+    document.getElementById("layout");
+
+let draggingDivider = false;
+
+divider.addEventListener(
+    "mousedown",
+    (event) => {
+        draggingDivider = true;
+        divider.classList.add("dragging");
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        event.preventDefault();
+    }
+);
+
+window.addEventListener(
+    "mousemove",
+    (event) => {
+
+        if (!draggingDivider) {
+            return;
+        }
+
+        const layoutRect =
+            layoutEl.getBoundingClientRect();
+
+        const minLeft = 320;
+        const minRight = 320;
+
+        let newWidth =
+            event.clientX - layoutRect.left;
+
+        newWidth = Math.max(
+            minLeft,
+            Math.min(
+                newWidth,
+                layoutRect.width - minRight - divider.offsetWidth
+            )
+        );
+
+        leftPanel.style.width = newWidth + "px";
+    }
+);
+
+window.addEventListener(
+    "mouseup",
+    () => {
+
+        if (!draggingDivider) {
+            return;
+        }
+
+        draggingDivider = false;
+        divider.classList.remove("dragging");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+    }
+);
+
+
+// ------------------------------------------------------------
+// VERTICAL DIVIDERS (params <-> script, script <-> console)
+// ------------------------------------------------------------
+
+function makeVerticalResizer(dividerEl, targetEl, options) {
+
+    let dragging = false;
+    let startY = 0;
+    let startHeight = 0;
+
+    const {
+        grows, // "down" if dragging down grows targetEl, "up" if dragging up grows it
+        min,
+        max
+    } = options;
+
+    dividerEl.addEventListener(
+        "mousedown",
+        (event) => {
+            dragging = true;
+            startY = event.clientY;
+            startHeight = targetEl.getBoundingClientRect().height;
+            dividerEl.classList.add("dragging");
+            document.body.style.cursor = "row-resize";
+            document.body.style.userSelect = "none";
+            event.preventDefault();
+        }
+    );
+
+    window.addEventListener(
+        "mousemove",
+        (event) => {
+
+            if (!dragging) {
+                return;
+            }
+
+            const delta =
+                grows === "down"
+                    ? event.clientY - startY
+                    : startY - event.clientY;
+
+            const newHeight =
+                Math.max(min, Math.min(max, startHeight + delta));
+
+            targetEl.style.maxHeight = newHeight + "px";
+            targetEl.style.height = newHeight + "px";
+        }
+    );
+
+    window.addEventListener(
+        "mouseup",
+        () => {
+
+            if (!dragging) {
+                return;
+            }
+
+            dragging = false;
+            dividerEl.classList.remove("dragging");
+            document.body.style.cursor = "";
+            document.body.style.userSelect = "";
+        }
+    );
+}
+
+
+// Dragging down grows the Parameters panel (pushes into the script area).
+makeVerticalResizer(
+    document.getElementById("params-divider"),
+    document.getElementById("params"),
+    { grows: "down", min: 60, max: 600 }
+);
+
+// Dragging the console divider UP grows the output console (pushes up
+// into the script area) -- dragging down shrinks it back.
+makeVerticalResizer(
+    document.getElementById("console-divider"),
+    document.getElementById("output"),
+    { grows: "up", min: 60, max: 600 }
+);
 
 
 // ------------------------------------------------------------
@@ -624,6 +773,9 @@ function renderParamsPanel() {
 
     panel.innerHTML = "";
 
+    document.getElementById("params-divider").style.display =
+        params.length ? "" : "none";
+
     for (const param of params) {
 
         const row =
@@ -737,9 +889,7 @@ document
         scheduleParamRefresh
     );
 
-// Now that parseParams/renderParamsPanel exist, render the default script's
-// params. (This has to happen after their declarations below this point in
-// module-load order, not up near where defaultScript is set.)
+// Initial render of the (empty) params panel for the blank editor.
 renderParamsPanel();
 
 

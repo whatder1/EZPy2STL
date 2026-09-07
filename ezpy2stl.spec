@@ -37,7 +37,7 @@ hiddenimports = [
 # Best-effort full collection for the packages most likely to have
 # hidden imports, native binaries, or bundled data files that static
 # analysis would otherwise miss.
-for pkg in ('build123d', 'OCP', 'webview'):
+for pkg in ('build123d', 'OCP', 'webview', 'lib3mf'):
     pkg_datas, pkg_binaries, pkg_hiddenimports = collect_all(pkg)
     datas += pkg_datas
     binaries += pkg_binaries
@@ -89,6 +89,6 @@ app = BUNDLE(
     bundle_identifier='com.elinussbaum.ezpy2stl',
     info_plist={
         'NSHighResolutionCapable': 'True',
-        'CFBundleShortVersionString': '0.1.0',
+        'CFBundleShortVersionString': '0.2.0',
     },
 )
