@@ -18,6 +18,21 @@
         rel="stylesheet"
     >
 
+    <!-- CodeMirror 5: script editor syntax highlighting + line numbers.
+         Using v5 (not v6) deliberately -- it's a single global script/
+         CSS pair with no bundler-style multi-package ESM wiring,
+         which fits this no-build-step project much better. -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css"
+    >
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/material-darker.min.css"
+    >
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/python/python.min.js"></script>
+
     <style>
 
         :root {
@@ -288,6 +303,24 @@
             min-height: 100px;
         }
 
+        /* CodeMirror replaces the #script textarea with a sibling
+           .CodeMirror div (the original textarea is hidden, not
+           removed). It needs its own sizing since it doesn't inherit
+           #script's flex/height rules automatically. */
+        .CodeMirror {
+            flex: 1;
+            width: 100%;
+            min-height: 100px;
+            height: auto;
+            font-family: var(--font-code);
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+
+        .CodeMirror-gutters {
+            border-right: 1px solid var(--border);
+        }
+
         #params-divider,
         #console-divider {
             height: 6px;
@@ -434,6 +467,19 @@
             color: var(--text);
         }
 
+        .file-download-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: var(--font-ui);
+            cursor: pointer;
+        }
+
+        .file-download-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
         .file-slicer {
             background: none;
             border: 1px solid var(--border);
@@ -477,6 +523,85 @@
             pointer-events: none;
         }
 
+        /* ---------------------------------------------------- */
+        /* RECOVERY BANNER                                       */
+        /* ---------------------------------------------------- */
+
+        #recovery-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            background: var(--accent-dim);
+            border-bottom: 1px solid var(--accent);
+            font-size: 13px;
+        }
+
+        #recovery-banner.visible {
+            display: flex;
+        }
+
+        #recovery-banner .btn {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        /* ---------------------------------------------------- */
+        /* RECENT FILES DROPDOWN                                 */
+        /* ---------------------------------------------------- */
+
+        #recent-wrap {
+            position: relative;
+            display: flex;
+            gap: 4px;
+        }
+
+        #recent-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            min-width: 260px;
+            max-width: 380px;
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px;
+            z-index: 10;
+        }
+
+        #recent-dropdown.visible {
+            display: block;
+        }
+
+        #recent-dropdown .recent-empty {
+            padding: 8px 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .recent-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 7px 10px;
+            font-size: 12.5px;
+            font-family: var(--font-code);
+            color: var(--text);
+            border-radius: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .recent-item:hover {
+            background: var(--bg-0);
+            color: var(--accent);
+        }
+
     </style>
 </head>
 
@@ -494,12 +619,22 @@
         >
 
         <div class="toolbar-actions">
-            <button id="open-button" class="btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>
-                </svg>
-                Open
-            </button>
+            <div id="recent-wrap">
+                <button id="open-button" class="btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>
+                    </svg>
+                    Open
+                </button>
+
+                <button id="recent-toggle" class="btn" title="Recent files" style="padding: 7px 8px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0;">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                </button>
+
+                <div id="recent-dropdown"></div>
+            </div>
 
             <button id="save-button" class="btn" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -529,6 +664,14 @@
     <div id="layout">
 
         <div id="left">
+
+            <div id="recovery-banner">
+                <span>Recovered unsaved work from your last session.</span>
+                <span style="display: flex; gap: 8px;">
+                    <button id="recovery-discard" class="btn">Discard</button>
+                    <button id="recovery-restore" class="btn btn-primary">Restore</button>
+                </span>
+            </div>
 
             <div id="params-section">
                 <div class="panel-label">Parameters</div>

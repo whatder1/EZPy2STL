@@ -37,3 +37,14 @@ def app_support_dir() -> Path:
     path = Path.home() / "Library" / "Application Support" / "EZPy2STL"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def log_dir() -> Path:
+    """Where startup/crash logs go. Used regardless of frozen state --
+    console=False in the packaged .app means a launch failure is
+    otherwise completely silent (no Terminal, no error, just nothing),
+    so this is the only way to see what happened."""
+
+    path = Path.home() / "Library" / "Logs" / "EZPy2STL"
+    path.mkdir(parents=True, exist_ok=True)
+    return path

@@ -7,6 +7,58 @@ import { OrbitControls } from
 import { STLLoader } from
     'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/STLLoader.js';
 
+import { parseParams, formatParamLabel, formatParamLine } from
+    './params.js';
+
+
+// ------------------------------------------------------------
+// SCRIPT EDITOR (CodeMirror)
+//
+// Replaces the plain #script textarea with a syntax-highlighted,
+// line-numbered editor. CodeMirror is loaded as classic <script> tags
+// in index.html (not an ES module -- v5 doesn't ship one), so the
+// global `CodeMirror` is already available by the time this module
+// runs (module scripts execute after the document is parsed).
+//
+// CodeMirror.fromTextArea() hides the original textarea and keeps it
+// in the DOM as a sync target, but doesn't keep its .value live-
+// updated in real time -- so every other place in this file that used
+// to read/write the textarea's .value now goes through these two
+// functions instead.
+// ------------------------------------------------------------
+
+const editor =
+    CodeMirror.fromTextArea(
+        document.getElementById("script"),
+        {
+            mode: "python",
+            theme: "material-darker",
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: false
+        }
+    );
+
+
+function getScriptText() {
+    return editor.getValue();
+}
+
+
+function setScriptText(text) {
+    editor.setValue(text);
+}
+
+
+// CodeMirror caches its own layout measurements and doesn't notice
+// when its container is resized by something else (dragging a panel
+// divider, resizing the window) -- this keeps it in sync whenever
+// that happens, instead of sprinkling editor.refresh() calls into
+// every place that can change its size.
+new ResizeObserver(() => editor.refresh())
+    .observe(editor.getWrapperElement());
+
 
 // Editor starts blank -- open a file or write your own script.
 
@@ -511,18 +563,38 @@ function renderFileList(names, panel) {
         );
 
 
-        const downloadLink =
-            document.createElement("a");
+        let downloadEl;
 
-        downloadLink.className = "file-download";
+        if (hasNativeApi) {
 
-        downloadLink.href =
-            "/download/" + encodeURIComponent(name);
+            downloadEl =
+                document.createElement("button");
 
-        downloadLink.textContent = "Download";
+            downloadEl.className = "file-download file-download-btn";
+            downloadEl.textContent = "Download";
 
-        downloadLink.download =
-            name.split("/").pop();
+            downloadEl.addEventListener(
+                "click",
+                () => downloadNative(name, downloadEl)
+            );
+
+        } else {
+
+            // Browser-only fallback. Not used when running the actual
+            // desktop app -- see downloadNative() for why.
+            downloadEl =
+                document.createElement("a");
+
+            downloadEl.className = "file-download";
+
+            downloadEl.href =
+                "/download/" + encodeURIComponent(name);
+
+            downloadEl.textContent = "Download";
+
+            downloadEl.download =
+                name.split("/").pop();
+        }
 
 
         const slicerButton =
@@ -544,7 +616,7 @@ function renderFileList(names, panel) {
         actions.className = "file-actions";
 
         actions.appendChild(slicerButton);
-        actions.appendChild(downloadLink);
+        actions.appendChild(downloadEl);
 
 
         row.appendChild(nameButton);
@@ -605,9 +677,66 @@ async function openInSlicer(name, button) {
 }
 
 
+async function downloadNative(name, button) {
+
+    const originalText =
+        button.textContent;
+
+    button.textContent = "Saving...";
+
+    button.disabled = true;
+
+    try {
+
+        const result =
+            await window.pywebview.api.download_file(name);
+
+        if (!result) {
+            // Dialog was cancelled -- not an error.
+            return;
+        }
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        button.textContent = "Saved!";
+
+    }
+    catch (error) {
+
+        button.textContent = "Failed";
+
+        console.error(error.message);
+    }
+    finally {
+
+        setTimeout(
+            () => {
+                button.textContent = originalText;
+                button.disabled = false;
+            },
+            2000
+        );
+    }
+}
+
+
 async function selectFile(name, panel) {
 
-    await loadModel(name);
+    if (name.toLowerCase().endsWith(".stl")) {
+
+        await loadModel(name);
+
+    } else {
+
+        // No loader for STEP/3MF in this viewer -- download or send
+        // to OrcaSlicer instead, both of which already work for any
+        // format via the existing per-row buttons.
+        document.getElementById("output").textContent =
+            `Preview not available for ${name} -- use Download or ` +
+            `Open in OrcaSlicer instead.`;
+    }
 
     for (const row of panel.children) {
 
@@ -643,133 +772,32 @@ function setStatus(state, label) {
 //
 // Detects top-level constant assignments in the script
 // (NAME = literal_value  # optional comment) and exposes them as
-// form controls. Editing a control rewrites that exact line in the
-// textarea -- the textarea stays the single source of truth, this
-// is just a friendly editor bound to specific lines in it.
+// form controls. Editing a control rewrites that exact line via
+// setScriptText() -- the editor stays the single source of truth,
+// this is just a friendly editor bound to specific lines in it.
+// (Parsing/formatting logic itself lives in params.js, imported
+// above, so it's testable outside a browser.)
 // ------------------------------------------------------------
-
-const PARAM_LINE_PATTERN =
-    /^([A-Z][A-Z0-9_]*)\s*=\s*(.+?)\s*(#.*)?$/;
-
-
-function parseParams(scriptText) {
-
-    const lines =
-        scriptText.split("\n");
-
-    const params = [];
-
-    for (let i = 0; i < lines.length; i++) {
-
-        const line = lines[i];
-
-        // Only bare (non-indented) lines count as top-level constants --
-        // this naturally skips anything inside a function/class body.
-        if (/^\s/.test(line) || !line.trim()) {
-            continue;
-        }
-
-        const match =
-            line.match(PARAM_LINE_PATTERN);
-
-        if (!match) {
-            continue;
-        }
-
-        const [, name, rawValue, rawComment] = match;
-
-        let type = null;
-        let value = null;
-
-        if (/^(True|False)$/.test(rawValue)) {
-
-            type = "bool";
-            value = rawValue === "True";
-
-        } else if (/^-?\d+(\.\d+)?$/.test(rawValue)) {
-
-            type = "number";
-            value = Number(rawValue);
-
-        } else if (/^(['"]).*\1$/.test(rawValue)) {
-
-            type = "string";
-            value = rawValue.slice(1, -1);
-        }
-
-        // Anything else (expressions, list comprehensions, function
-        // calls referencing other constants) is left alone -- it's
-        // derived, not a raw literal a person would hand-tune.
-        if (type === null) {
-            continue;
-        }
-
-        params.push({
-            lineIndex: i,
-            name: name,
-            type: type,
-            value: value,
-            isFloat: type === "number" && rawValue.includes("."),
-            quote: type === "string" ? rawValue[0] : null,
-            comment:
-                rawComment
-                    ? rawComment.replace(/^#\s*/, "")
-                    : ""
-        });
-    }
-
-    return params;
-}
-
-
-function formatParamLabel(name) {
-
-    return name
-        .toLowerCase()
-        .split("_")
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-}
-
 
 function writeParamValue(param, newValue) {
 
-    const scriptBox =
-        document.getElementById("script");
-
     const lines =
-        scriptBox.value.split("\n");
-
-    let formattedValue;
-
-    if (param.type === "bool") {
-        formattedValue = newValue ? "True" : "False";
-    } else if (param.type === "string") {
-        formattedValue = param.quote + newValue + param.quote;
-    } else {
-        formattedValue = String(newValue);
-    }
-
-    const commentSuffix =
-        param.comment ? "  # " + param.comment : "";
+        getScriptText().split("\n");
 
     lines[param.lineIndex] =
-        `${param.name} = ${formattedValue}${commentSuffix}`;
+        formatParamLine(param, newValue);
 
-    scriptBox.value = lines.join("\n");
+    setScriptText(lines.join("\n"));
 }
 
 
 function renderParamsPanel() {
 
-    const scriptBox =
-        document.getElementById("script");
-
     const panel =
         document.getElementById("params");
 
     const params =
-        parseParams(scriptBox.value);
+        parseParams(getScriptText());
 
     panel.innerHTML = "";
 
@@ -870,7 +898,8 @@ function renderParamsPanel() {
 
 
 // Re-scan whenever the script changes: on load, after opening a file,
-// and (debounced) as the person types directly in the editor.
+// and (debounced) as the person types directly in the editor. Autosave
+// piggybacks on the same change event with its own, longer debounce.
 
 let paramRefreshTimer = null;
 
@@ -882,12 +911,13 @@ function scheduleParamRefresh() {
         setTimeout(renderParamsPanel, 400);
 }
 
-document
-    .getElementById("script")
-    .addEventListener(
-        "input",
-        scheduleParamRefresh
-    );
+editor.on(
+    "change",
+    () => {
+        scheduleParamRefresh();
+        scheduleAutosave();
+    }
+);
 
 // Initial render of the (empty) params panel for the blank editor.
 renderParamsPanel();
@@ -903,9 +933,7 @@ async function build() {
         document.getElementById("build-button");
 
     const script =
-        document.getElementById(
-            "script"
-        ).value;
+        getScriptText();
 
     const output =
         document.getElementById(
@@ -962,9 +990,14 @@ async function build() {
                 filesPanel
             );
 
-            // Auto-load the first file so the viewer isn't left empty
+            // Auto-load an STL if one was produced (previewable);
+            // otherwise fall back to just the first file in the list.
+            const initialFile =
+                result.files.find(f => f.toLowerCase().endsWith(".stl")) ||
+                result.files[0];
+
             await selectFile(
-                result.files[0],
+                initialFile,
                 filesPanel
             );
 
@@ -1015,6 +1048,99 @@ document
     );
 
 // ------------------------------------------------------------
+// AUTOSAVE (crash/close recovery)
+//
+// Periodically POSTs the current script to the backend, which writes
+// it to a recovery file outside the actual project files. On next
+// launch, if a recovery copy exists, a banner offers to restore it --
+// never silently, since that could clobber an intentional blank start.
+// ------------------------------------------------------------
+
+let autosaveTimer = null;
+
+function scheduleAutosave() {
+
+    clearTimeout(autosaveTimer);
+
+    autosaveTimer = setTimeout(
+        async () => {
+            try {
+                await fetch("/autosave", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ script: getScriptText() })
+                });
+            } catch (error) {
+                // Non-critical -- don't interrupt the person's work
+                // over a failed autosave write.
+                console.error("Autosave failed:", error.message);
+            }
+        },
+        2000
+    );
+}
+
+
+async function clearAutosave() {
+
+    clearTimeout(autosaveTimer);
+
+    try {
+        await fetch("/autosave", { method: "DELETE" });
+    } catch (error) {
+        console.error("Could not clear autosave:", error.message);
+    }
+}
+
+
+async function checkForRecovery() {
+
+    let data;
+
+    try {
+        const response = await fetch("/autosave");
+        data = await response.json();
+    } catch (error) {
+        return;
+    }
+
+    if (!data.content || !data.content.trim()) {
+        return;
+    }
+
+    const banner =
+        document.getElementById("recovery-banner");
+
+    banner.classList.add("visible");
+
+    document
+        .getElementById("recovery-restore")
+        .addEventListener(
+            "click",
+            () => {
+                setScriptText(data.content);
+                renderParamsPanel();
+                banner.classList.remove("visible");
+            },
+            { once: true }
+        );
+
+    document
+        .getElementById("recovery-discard")
+        .addEventListener(
+            "click",
+            async () => {
+                await clearAutosave();
+                banner.classList.remove("visible");
+            },
+            { once: true }
+        );
+}
+
+checkForRecovery();
+
+
+// ------------------------------------------------------------
 // FILE STATE (open/save)
 // ------------------------------------------------------------
 
@@ -1052,11 +1178,13 @@ function setCurrentFile(path, name) {
 
 async function loadScriptText(text, name, path) {
 
-    document.getElementById("script").value = text;
+    setScriptText(text);
 
     renderParamsPanel();
 
     setCurrentFile(path || null, name || null);
+
+    document.getElementById("recovery-banner").classList.remove("visible");
 
     document.getElementById("output").textContent =
         name ? `Opened: ${name}` : "Ready.";
@@ -1110,6 +1238,111 @@ openButton.addEventListener(
 );
 
 
+// ------------------------------------------------------------
+// RECENT FILES
+// ------------------------------------------------------------
+
+const recentToggle =
+    document.getElementById("recent-toggle");
+
+const recentDropdown =
+    document.getElementById("recent-dropdown");
+
+
+async function openRecentPath(path) {
+
+    const result =
+        await window.pywebview.api.open_recent(path);
+
+    if (!result) {
+        return;
+    }
+
+    if (result.error) {
+        document.getElementById("output").textContent =
+            "Error opening file: " + result.error;
+        return;
+    }
+
+    await loadScriptText(
+        result.content,
+        result.name,
+        result.path
+    );
+}
+
+
+async function refreshRecentDropdown() {
+
+    if (!hasNativeApi) {
+        return;
+    }
+
+    const files =
+        await window.pywebview.api.get_recent_files();
+
+    recentDropdown.innerHTML = "";
+
+    if (!files.length) {
+
+        const empty =
+            document.createElement("div");
+
+        empty.className = "recent-empty";
+        empty.textContent = "No recent files yet";
+
+        recentDropdown.appendChild(empty);
+        return;
+    }
+
+    for (const file of files) {
+
+        const item =
+            document.createElement("button");
+
+        item.className = "recent-item";
+        item.textContent = file.name;
+        item.title = file.path;
+
+        item.addEventListener(
+            "click",
+            () => {
+                recentDropdown.classList.remove("visible");
+                openRecentPath(file.path);
+            }
+        );
+
+        recentDropdown.appendChild(item);
+    }
+}
+
+
+recentToggle.addEventListener(
+    "click",
+    async (event) => {
+
+        event.stopPropagation();
+
+        const opening =
+            !recentDropdown.classList.contains("visible");
+
+        if (opening) {
+            await refreshRecentDropdown();
+        }
+
+        recentDropdown.classList.toggle("visible", opening);
+    }
+);
+
+// Click anywhere else closes the dropdown.
+window.addEventListener(
+    "click",
+    () => {
+        recentDropdown.classList.remove("visible");
+    }
+);
+
+
 // Browser-only fallback (no real path available from a picked file, so
 // this can't set currentFilePath -- "Save" stays disabled until a
 // "Save As" happens through the native API).
@@ -1155,7 +1388,7 @@ saveButton.addEventListener(
         }
 
         const script =
-            document.getElementById("script").value;
+            getScriptText();
 
         const result =
             await window.pywebview.api.save_file(
@@ -1168,6 +1401,8 @@ saveButton.addEventListener(
                 "Error saving file: " + result.error;
             return;
         }
+
+        clearAutosave();
 
         document.getElementById("output").textContent =
             `Saved: ${currentFileName}`;
@@ -1187,7 +1422,7 @@ saveAsButton.addEventListener(
         }
 
         const script =
-            document.getElementById("script").value;
+            getScriptText();
 
         const result =
             await window.pywebview.api.save_file_as(script);
@@ -1201,6 +1436,8 @@ saveAsButton.addEventListener(
                 "Error saving file: " + result.error;
             return;
         }
+
+        clearAutosave();
 
         setCurrentFile(
             result.path,
@@ -1217,11 +1454,20 @@ saveAsButton.addEventListener(
 // NATIVE BRIDGE READY
 // ------------------------------------------------------------
 
-// window.pywebview only exists once this fires -- it's not available
-// on normal page load, per pywebview's own docs.
-window.addEventListener(
-    "pywebviewready",
-    () => {
-        hasNativeApi = true;
-    }
-);
+// window.pywebview only exists once the bridge is ready, per
+// pywebview's own docs -- but the "pywebviewready" event can fire
+// before this script finishes registering the listener below (a race
+// that got more likely once CodeMirror's blocking CDN <script> tags
+// started delaying how soon this module runs). So: check directly
+// first for the case where it already fired, and still listen for the
+// case where it hasn't yet.
+
+function markNativeApiReady() {
+    hasNativeApi = true;
+}
+
+if (window.pywebview) {
+    markNativeApiReady();
+} else {
+    window.addEventListener("pywebviewready", markNativeApiReady);
+}

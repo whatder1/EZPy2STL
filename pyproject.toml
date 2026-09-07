@@ -13,3 +13,6 @@ build = [
     "pyinstaller>=6.8",
     "pyinstaller-hooks-contrib",
 ]
+test = [
+    "pytest>=8.0",
+]

@@ -23,6 +23,15 @@ class BuildRequest(BaseModel):
     script: str
 
 
+class AutosaveRequest(BaseModel):
+    script: str
+
+
+# Where the crash/close recovery copy lives. Separate filename from
+# workspace/model.py (the build input) so the two never collide.
+AUTOSAVE_PATH = WORKSPACE / ".autosave.py"
+
+
 # Whitelist of files produced by the most recent build, keyed by the name
 # exposed to the frontend (path relative to WORKSPACE). Serving is limited
 # to exactly these paths -- never an arbitrary filesystem path -- so a
@@ -35,6 +44,31 @@ def index():
     return FileResponse(
         resource_path("frontend/index.html")
     )
+
+
+@app.get("/autosave")
+def get_autosave():
+    if not AUTOSAVE_PATH.exists():
+        return {"content": None}
+
+    try:
+        return {"content": AUTOSAVE_PATH.read_text()}
+    except OSError:
+        return {"content": None}
+
+
+@app.post("/autosave")
+def post_autosave(request: AutosaveRequest):
+    WORKSPACE.mkdir(parents=True, exist_ok=True)
+    AUTOSAVE_PATH.write_text(request.script)
+    return {"success": True}
+
+
+@app.delete("/autosave")
+def delete_autosave():
+    if AUTOSAVE_PATH.exists():
+        AUTOSAVE_PATH.unlink()
+    return {"success": True}
 
 
 @app.post("/build")
