@@ -3,7 +3,7 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [0.3.0]
 
 ### Added
 - Startup/crash logging to `~/Library/Logs/EZPy2STL/app.log`. The
@@ -21,11 +21,36 @@ follows [Keep a Changelog](https://keepachangelog.com/).
   (previously STL-only). Non-STL formats are listed for
   download/OrcaSlicer but not previewed -- no loader for them in the
   current 3D viewer.
+- Automatic STEP and 3MF export: any `export_stl(part, path)` call in
+  a script now also produces sibling `.step` and `.3mf` files from the
+  same in-memory part, regardless of whether the script asks for them.
+  Wrapped in error handling throughout -- a failure in the bonus
+  formats surfaces in the build output but never breaks the STL build
+  itself.
+- `download_file` native API: Download now goes through a native Save
+  dialog instead of an HTML `<a download>` link, which turned out to
+  be unreliable inside WKWebView (the desktop app's embedded browser
+  engine) even though it worked fine in a plain browser tab.
 - `tests/test_executor.py` (pytest) and `frontend/params.test.mjs`
-  (Node's built-in test runner) covering the workspace-isolation logic
-  and parameter-detection logic respectively.
+  (Node's built-in test runner) covering the workspace-isolation
+  logic, the auto STEP/3MF export mechanism, and parameter-detection
+  logic.
 - `frontend/params.js`: parameter-parsing logic extracted out of
   `app.js` so it's testable without a browser.
+
+### Fixed
+- A race condition where `hasNativeApi` could stay `false` even when
+  running the real desktop app, if pywebview's ready event fired
+  before the page finished registering the listener for it (made more
+  likely once CodeMirror's CDN scripts started delaying page load).
+  Save/Save As/Download would incorrectly claim they needed the
+  desktop app.
+- The initial auto-export implementation assumed a plain
+  `build123d.export_3mf(part, path)` function; the real API is a
+  separate `Mesher` class (`Mesher().add_shape(part).write(path)`).
+- A `subprocess.TimeoutExpired.stdout`/`.stderr` type inconsistency
+  (can come back as `None`, `str`, or raw `bytes` depending on timing)
+  that could crash the timeout-handling path itself.
 
 ## [0.2.1]
 ### Added
