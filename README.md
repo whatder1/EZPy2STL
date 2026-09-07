@@ -61,7 +61,17 @@ If cloning strips the executable bit off the shell scripts, restore it with `chm
 
 Everything is pinned in `pyproject.toml` / `uv.lock`. Three ways to stay current as build123d, pywebview, FastAPI, and PyInstaller release new versions:
 
-1. **Automatic (already set up):** `.github/dependabot.yml` has GitHub check weekly for new versions of everything in `pyproject.toml`/`uv.lock`, and open a pull request per update. It also watches the versions pinned in the GitHub Actions workflow. Review each PR, and prefer merging one at a time — if something breaks, you'll know which update did it.
+1. **Automatic (already set up):** `.github/dependabot.yml` has GitHub check weekly for new versions of everything in `pyproject.toml`/`uv.lock`, and open a pull request per update. It also watches the versions pinned in the GitHub Actions workflow.
+
+   **Before merging any Dependabot PR:** `.github/workflows/build-macos-app.yml` now runs a build-only check (no release published) on every PR that touches `pyproject.toml`, `uv.lock`, `ezpy2stl.spec`, or the app/frontend code — so a red X on the PR means don't merge it, something broke. But CI passing isn't the same as verified working: pull the branch and run the same steps yourself before trusting it —
+   ```bash
+   git fetch origin
+   git checkout <dependabot-branch-name>
+   uv sync
+   uv run python desktop.py   # smoke-test in dev mode
+   ./build_app.sh              # rebuild the actual .app and try it for real
+   ```
+   Merge one PR at a time, not batched — if something breaks, you'll know exactly which update did it. This isn't a hypothetical: both the `requires-python` mismatch and the `lib3mf` packaging break earlier in this project's history were exactly this kind of routine-looking version bump that silently broke something CI alone wouldn't have caught before this check existed.
 
 2. **Manual, on demand:**
    ```bash

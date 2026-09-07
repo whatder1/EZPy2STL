@@ -1,12 +1,15 @@
-# Builds EZPy2STL.app + a .dmg on GitHub's macOS runners and attaches
-# them to a GitHub Release whenever a version tag is pushed.
+# Builds EZPy2STL.app + a .dmg on GitHub's macOS runners.
 #
-# Untested from the environment that authored this file (no macOS CI
-# access there) -- the first tag push is the real test. If it fails,
-# the Actions log will show exactly what broke; that's the thing to
-# paste back for a fix, not a guess.
+# Two triggers, two purposes:
+#   - Pull requests that touch dependency/build files: build-only check,
+#     no release published. This is what verifies a Dependabot PR
+#     actually still builds before you merge it -- confirmed working
+#     as of the v0.2.0 build (which caught a real lib3mf packaging
+#     break before it reached main).
+#   - A pushed version tag: same build, plus publishes the .dmg to a
+#     GitHub Release.
 #
-# Usage:
+# Usage for a release:
 #   git tag v0.2.0
 #   git push --tags
 
@@ -16,6 +19,18 @@ on:
   push:
     tags:
       - "v*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "ezpy2stl.spec"
+      - "app/**"
+      - "frontend/**"
+      - "desktop.py"
+      - "build_app.sh"
+      - "make_dmg.sh"
+      - ".github/workflows/build-macos-app.yml"
   workflow_dispatch:
 
 jobs:
