@@ -1,0 +1,43 @@
+# Builds EZPy2STL.app + a .dmg on GitHub's macOS runners and attaches
+# them to a GitHub Release whenever a version tag is pushed.
+#
+# Untested from the environment that authored this file (no macOS CI
+# access there) -- the first tag push is the real test. If it fails,
+# the Actions log will show exactly what broke; that's the thing to
+# paste back for a fix, not a guess.
+#
+# Usage:
+#   git tag v0.2.0
+#   git push --tags
+
+name: Build macOS App
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Build app
+        run: ./build_app.sh
+
+      - name: Build dmg
+        run: ./make_dmg.sh
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/EZPy2STL.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

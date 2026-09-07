@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Python dependencies (build123d, fastapi, pywebview, pyinstaller, ...)
+  # managed via pyproject.toml / uv.lock.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Keeps the versions pinned in .github/workflows/*.yml (setup-uv,
+  # actions/checkout, the release action) current too.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

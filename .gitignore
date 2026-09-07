@@ -1,0 +1,19 @@
+# Python / uv
+__pycache__/
+*.pyc
+.venv/
+
+# Build artifacts (regenerate with build_app.sh / make_dmg.sh)
+build/
+dist/
+
+# Runtime workspace -- generated build output from running scripts,
+# never something to commit
+/workspace/
+
+# Stray STL/py test artifacts that predate workspace isolation --
+# regenerate by clicking Build, don't commit personal model output
+*.stl
+
+# macOS
+.DS_Store
