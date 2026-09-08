@@ -322,7 +322,8 @@
         }
 
         #params-divider,
-        #console-divider {
+        #console-divider,
+        #files-divider {
             height: 6px;
             flex-shrink: 0;
             cursor: row-resize;
@@ -331,7 +332,8 @@
         }
 
         #params-divider::after,
-        #console-divider::after {
+        #console-divider::after,
+        #files-divider::after {
             content: "";
             position: absolute;
             left: 0;
@@ -345,8 +347,16 @@
         #params-divider:hover::after,
         #params-divider.dragging::after,
         #console-divider:hover::after,
-        #console-divider.dragging::after {
+        #console-divider.dragging::after,
+        #files-divider:hover::after,
+        #files-divider.dragging::after {
             background: var(--accent);
+        }
+
+        /* Hide the divider along with the section it resizes when
+           there's nothing built yet. */
+        #files-divider:has(+ #files-section #files:empty) {
+            display: none;
         }
 
         /* ---------------------------------------------------- */
@@ -413,9 +423,53 @@
             display: none;
         }
 
+        .files-panel-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .files-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-muted);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .files-toggle input[type="checkbox"] {
+            width: 13px;
+            height: 13px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
         #files {
+            height: 160px;
+            overflow-y: auto;
             padding: 4px 16px;
             background: var(--bg-1);
+        }
+
+        /* STEP/3MF companion files are grouped separately from STLs
+           and hidden by default -- the checkbox in the panel label
+           reveals them via :has(), no JS needed. */
+        .file-group-other {
+            display: none;
+        }
+
+        #files-section:has(#show-other-formats:checked) .file-group-other {
+            display: block;
+        }
+
+        .file-group + .file-group {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed var(--border);
         }
 
         .file-row {
@@ -691,8 +745,16 @@
 
             <div id="output">Ready.</div>
 
+            <div id="files-divider"></div>
+
             <div id="files-section">
-                <div class="panel-label">Generated files</div>
+                <div class="panel-label files-panel-label">
+                    <span>Generated files</span>
+                    <label class="files-toggle">
+                        <input type="checkbox" id="show-other-formats">
+                        <span>Show STEP / 3MF</span>
+                    </label>
+                </div>
                 <div id="files"></div>
             </div>
 

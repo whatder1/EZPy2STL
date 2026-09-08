@@ -370,6 +370,16 @@ makeVerticalResizer(
     { grows: "up", min: 60, max: 600 }
 );
 
+// Dragging the files divider UP grows the generated-files list (pushes
+// up into the script area) -- dragging down shrinks it back. #files
+// has its own overflow-y: auto, so anything past the current height
+// scrolls instead of being clipped.
+makeVerticalResizer(
+    document.getElementById("files-divider"),
+    document.getElementById("files"),
+    { grows: "up", min: 60, max: 600 }
+);
+
 
 // ------------------------------------------------------------
 // RENDER LOOP
@@ -538,7 +548,15 @@ async function loadModel(name) {
 // FILE LIST (multiple STL outputs from one build)
 // ------------------------------------------------------------
 
-function renderFileList(names, panel) {
+function renderFileList(names, group, activeScope) {
+
+    // activeScope is the outer #files panel (which may contain both
+    // the stl and other-formats groups) -- selectFile needs it to
+    // clear "active" off a row in the *other* group, not just this
+    // one. Falls back to group itself so existing single-group calls
+    // still work.
+    const scope =
+        activeScope || group;
 
     for (const name of names) {
 
@@ -559,7 +577,7 @@ function renderFileList(names, panel) {
 
         nameButton.addEventListener(
             "click",
-            () => selectFile(name, panel)
+            () => selectFile(name, scope)
         );
 
 
@@ -621,7 +639,7 @@ function renderFileList(names, panel) {
 
         row.appendChild(nameButton);
         row.appendChild(actions);
-        panel.appendChild(row);
+        group.appendChild(row);
     }
 }
 
@@ -738,7 +756,7 @@ async function selectFile(name, panel) {
             `Open in OrcaSlicer instead.`;
     }
 
-    for (const row of panel.children) {
+    for (const row of panel.querySelectorAll(".file-row")) {
 
         row.classList.toggle(
             "active",
@@ -985,10 +1003,39 @@ async function build() {
 
         if (result.success && result.files.length > 0) {
 
-            renderFileList(
-                result.files,
-                filesPanel
-            );
+            // STLs first, STEP/3MF grouped separately below (hidden
+            // by default behind the "Show STEP / 3MF" toggle).
+            const stlFiles =
+                result.files.filter(
+                    f => f.toLowerCase().endsWith(".stl")
+                );
+
+            const otherFiles =
+                result.files.filter(
+                    f => !f.toLowerCase().endsWith(".stl")
+                );
+
+            if (stlFiles.length > 0) {
+
+                const stlGroup =
+                    document.createElement("div");
+
+                stlGroup.className = "file-group";
+
+                renderFileList(stlFiles, stlGroup, filesPanel);
+                filesPanel.appendChild(stlGroup);
+            }
+
+            if (otherFiles.length > 0) {
+
+                const otherGroup =
+                    document.createElement("div");
+
+                otherGroup.className = "file-group file-group-other";
+
+                renderFileList(otherFiles, otherGroup, filesPanel);
+                filesPanel.appendChild(otherGroup);
+            }
 
             // Auto-load an STL if one was produced (previewable);
             // otherwise fall back to just the first file in the list.

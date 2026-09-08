@@ -3,6 +3,24 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.1]
+
+### Changed
+- Generated files list is now grouped by type: STLs first, STEP/3MF
+  companions below. STEP/3MF are hidden by default behind a "Show
+  STEP / 3MF" toggle in the panel header (view-only -- doesn't affect
+  what actually gets exported).
+- Generated files panel now has a fixed, draggable height (same
+  divider pattern as Parameters/console) with its own scrollbar,
+  instead of growing unbounded and pushing files off-screen with no
+  way to reach them.
+
+### Fixed
+- `selectFile()`'s active-row highlighting looped over direct
+  children only; broke once file rows were nested inside per-type
+  group containers. Now walks all `.file-row` elements regardless of
+  nesting.
+
 ## [0.3.0]
 
 ### Added
