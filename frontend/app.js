@@ -1390,6 +1390,121 @@ window.addEventListener(
 );
 
 
+// ------------------------------------------------------------
+// VIEW MENU (show/hide panels)
+//
+// Each entry vanishes completely (display: none) rather than
+// collapsing to a header bar. Closing a panel also hides the
+// divider that resizes it -- a divider with nothing to resize is
+// just a dead control. State is in-memory only (resets to all-open
+// on relaunch); nothing is persisted to disk.
+// ------------------------------------------------------------
+
+const viewToggle =
+    document.getElementById("view-toggle");
+
+const viewDropdown =
+    document.getElementById("view-dropdown");
+
+const leftColumn =
+    document.getElementById("left");
+
+const PANEL_ELEMENTS = {
+
+    params: [
+        document.getElementById("params-section"),
+        document.getElementById("params-divider")
+    ],
+
+    script: [
+        editor.getWrapperElement()
+    ],
+
+    console: [
+        document.getElementById("console-divider"),
+        document.getElementById("output")
+    ],
+
+    files: [
+        document.getElementById("files-divider"),
+        document.getElementById("files-section")
+    ],
+
+    viewer: [
+        document.getElementById("divider"),
+        document.getElementById("right")
+    ]
+};
+
+
+function setPanelVisible(panel, visible) {
+
+    for (const el of PANEL_ELEMENTS[panel]) {
+
+        if (!el) {
+            continue;
+        }
+
+        // Clearing the inline style (rather than setting
+        // display: "block"/"flex") lets each panel's own CSS --
+        // including the existing "hide when genuinely empty" rules
+        // on Generated files -- decide its actual display value.
+        el.style.display =
+            visible ? "" : "none";
+    }
+
+    // The viewer shares the row with #left via a percentage width;
+    // closing it should let the script/console/etc. column take the
+    // full row instead of leaving a blank gap where the 3D view was.
+    if (panel === "viewer") {
+
+        leftColumn.style.width =
+            visible ? "" : "100%";
+    }
+
+    // CodeMirror doesn't repaint correctly coming back from
+    // display: none -- explicit refresh rather than trusting the
+    // ResizeObserver already watching it to fire in time.
+    if (panel === "script" && visible) {
+        editor.refresh();
+    }
+}
+
+
+for (const checkbox of
+    viewDropdown.querySelectorAll("input[type=checkbox]")) {
+
+    checkbox.addEventListener(
+        "change",
+        () => {
+            setPanelVisible(
+                checkbox.dataset.panel,
+                checkbox.checked
+            );
+        }
+    );
+}
+
+
+viewToggle.addEventListener(
+    "click",
+    (event) => {
+
+        event.stopPropagation();
+
+        viewDropdown.classList.toggle("visible");
+    }
+);
+
+// Click anywhere else closes the dropdown.
+window.addEventListener(
+    "click",
+    () => {
+        viewDropdown.classList.remove("visible");
+    }
+);
+
+
 // Browser-only fallback (no real path available from a picked file, so
 // this can't set currentFilePath -- "Save" stays disabled until a
 // "Save As" happens through the native API).

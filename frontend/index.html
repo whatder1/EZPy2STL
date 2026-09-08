@@ -656,6 +656,53 @@
             color: var(--accent);
         }
 
+        /* ---------------------------------------------------- */
+        /* VIEW MENU (show/hide panels)                          */
+        /* ---------------------------------------------------- */
+
+        #view-wrap {
+            position: relative;
+        }
+
+        #view-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            min-width: 190px;
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px;
+            z-index: 10;
+        }
+
+        #view-dropdown.visible {
+            display: block;
+        }
+
+        .view-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 7px 10px;
+            font-size: 12.5px;
+            color: var(--text);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .view-item:hover {
+            background: var(--bg-0);
+        }
+
+        .view-item input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
     </style>
 </head>
 
@@ -708,6 +755,38 @@
                 </svg>
                 Build
             </button>
+
+            <div id="view-wrap">
+                <button id="view-toggle" class="btn">
+                    View
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 0 0 2px;">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                </button>
+
+                <div id="view-dropdown">
+                    <label class="view-item">
+                        <input type="checkbox" data-panel="params" checked>
+                        <span>Parameters</span>
+                    </label>
+                    <label class="view-item">
+                        <input type="checkbox" data-panel="script" checked>
+                        <span>Script editor</span>
+                    </label>
+                    <label class="view-item">
+                        <input type="checkbox" data-panel="console" checked>
+                        <span>Console / output</span>
+                    </label>
+                    <label class="view-item">
+                        <input type="checkbox" data-panel="files" checked>
+                        <span>Generated files</span>
+                    </label>
+                    <label class="view-item">
+                        <input type="checkbox" data-panel="viewer" checked>
+                        <span>3D viewer</span>
+                    </label>
+                </div>
+            </div>
         </div>
 
         <span id="current-file"></span>

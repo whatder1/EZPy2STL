@@ -3,6 +3,20 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.0]
+
+### Added
+- View menu (toolbar) with checkboxes to show/hide each panel:
+  Parameters, Script editor, Console/output, Generated files, 3D
+  viewer. Hidden panels vanish completely (not collapsed to a header
+  bar); closing a panel also hides the divider that resizes it, since
+  a divider with nothing to resize is a dead control. Closing the 3D
+  viewer stretches the script/console column to full width instead of
+  leaving a blank gap.
+- State is in-memory/per-session only -- everything reopens on
+  relaunch. Not persisted to disk (would need a small `desktop.py`
+  API addition, similar to recent-files, if that's wanted later).
+
 ## [0.3.1]
 
 ### Changed

@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 .venv/
 
+# WIP Archives
+Archive.zip
+
 # Build artifacts (regenerate with build_app.sh / make_dmg.sh)
 build/
 dist/
