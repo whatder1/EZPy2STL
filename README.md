@@ -1,6 +1,6 @@
 # EZPy2STL
 
-A local macOS app for iterating on [build123d](https://build123d.readthedocs.io/) Python scripts: edit a script, see the resulting model in a 3D viewer oriented the way it'll sit on a print bed, tweak the script's top-level constants through an auto-generated parameter panel, build, then download the STL or send it straight to OrcaSlicer.
+A local macOS app for iterating on [build123d](https://build123d.readthedocs.io/) Python scripts: edit a script, see the resulting model in a 3D viewer oriented the way it'll sit on a print bed, tweak the script's top-level constants through an auto-generated parameter panel, build, then download the generated files (STL, plus STEP/3MF) or send them straight to OrcaSlicer.
 
 It runs two ways:
 - **From source**, as a FastAPI backend with a native window (via [pywebview](https://pywebview.flowrl.com/)) — this is the normal development setup.
@@ -90,7 +90,7 @@ Everything is pinned in `pyproject.toml` / `uv.lock`. Three ways to stay current
 - `app/executor.py` — runs a script in an isolated subprocess. In dev mode that's a real Python interpreter; in the frozen `.app` it's a self-relaunch of the same frozen binary with a `--run-user-script` flag, since a frozen executable can't be invoked as `python script.py` the way a real interpreter can. See the comments in this file for the full reasoning.
 - `app/paths.py` — resolves file paths correctly whether running from source or from inside the frozen `.app` (bundled resources vs. a writable per-user data directory).
 - `desktop.py` — the native app entry point: starts the FastAPI server in a background thread, opens a pywebview window pointing at it, and exposes native Open/Save dialogs to the frontend via `window.pywebview.api`.
-- `frontend/` — the UI itself: script editor, an auto-detected parameter panel (built from any `NAME = value  # comment` lines in the loaded script), a Three.js viewer, and the file list/download/OrcaSlicer controls.
+- `frontend/` — the UI itself: script editor, an auto-detected parameter panel (built from any `NAME = value  # comment` lines in the loaded script), a Three.js viewer, the file list/download/OrcaSlicer controls, and a View menu (toolbar) for showing/hiding any of those panels.
 - `ezpy2stl.spec` — the PyInstaller spec for the standalone `.app`.
 - `resources/AppIcon.icns` — the app icon.
 

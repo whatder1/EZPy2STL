@@ -3,6 +3,16 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.1]
+
+### Fixed
+- `pyproject.toml`'s `version` and `ezpy2stl.spec`'s
+  `CFBundleShortVersionString` were never bumped alongside the
+  v0.3.1/v0.4.0 releases (both still said 0.3.0) -- purely cosmetic,
+  didn't affect functionality, but worth keeping accurate since
+  they're the source the built .app's own version metadata comes
+  from.
+
 ## [0.4.0]
 
 ### Added

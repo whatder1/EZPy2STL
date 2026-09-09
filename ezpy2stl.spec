@@ -89,6 +89,6 @@ app = BUNDLE(
     bundle_identifier='com.elinussbaum.ezpy2stl',
     info_plist={
         'NSHighResolutionCapable': 'True',
-        'CFBundleShortVersionString': '0.3.0',
+        'CFBundleShortVersionString': '0.4.1',
     },
 )
