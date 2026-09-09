@@ -737,6 +737,13 @@
                 <div id="recent-dropdown"></div>
             </div>
 
+            <button id="build-button" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 3v18l7-5 7 5V3H5Z"/>
+                </svg>
+                Build
+            </button>
+
             <button id="save-button" class="btn" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 5h11l3 3v11H5V5Z"/>
@@ -748,48 +755,41 @@
             <button id="save-as-button" class="btn">
                 Save As…
             </button>
-
-            <button id="build-button" class="btn btn-primary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M5 3v18l7-5 7 5V3H5Z"/>
-                </svg>
-                Build
-            </button>
-
-            <div id="view-wrap">
-                <button id="view-toggle" class="btn">
-                    View
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 0 0 2px;">
-                        <path d="M6 9l6 6 6-6"/>
-                    </svg>
-                </button>
-
-                <div id="view-dropdown">
-                    <label class="view-item">
-                        <input type="checkbox" data-panel="params" checked>
-                        <span>Parameters</span>
-                    </label>
-                    <label class="view-item">
-                        <input type="checkbox" data-panel="script" checked>
-                        <span>Script editor</span>
-                    </label>
-                    <label class="view-item">
-                        <input type="checkbox" data-panel="console" checked>
-                        <span>Console / output</span>
-                    </label>
-                    <label class="view-item">
-                        <input type="checkbox" data-panel="files" checked>
-                        <span>Generated files</span>
-                    </label>
-                    <label class="view-item">
-                        <input type="checkbox" data-panel="viewer" checked>
-                        <span>3D viewer</span>
-                    </label>
-                </div>
-            </div>
         </div>
 
         <span id="current-file"></span>
+
+        <div id="view-wrap">
+            <button id="view-toggle" class="btn">
+                View
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 0 0 2px;">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </button>
+
+            <div id="view-dropdown">
+                <label class="view-item">
+                    <input type="checkbox" data-panel="params" checked>
+                    <span>Parameters</span>
+                </label>
+                <label class="view-item">
+                    <input type="checkbox" data-panel="script" checked>
+                    <span>Script editor</span>
+                </label>
+                <label class="view-item">
+                    <input type="checkbox" data-panel="console" checked>
+                    <span>Console / output</span>
+                </label>
+                <label class="view-item">
+                    <input type="checkbox" data-panel="files" checked>
+                    <span>Generated files</span>
+                </label>
+                <label class="view-item">
+                    <input type="checkbox" data-panel="viewer" checked>
+                    <span>3D viewer</span>
+                </label>
+            </div>
+        </div>
 
     </div>
 

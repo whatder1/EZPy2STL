@@ -3,6 +3,16 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.2]
+
+### Changed
+- Toolbar button order: Open, Build, Save, Save As -- Build moved up
+  next to Open rather than sitting after Save/Save As.
+- View menu moved out of the button group entirely and pinned to the
+  far right edge of the toolbar (same `margin-left: auto` pattern
+  already used for the current-filename label), rather than sitting
+  immediately after Build.
+
 ## [0.4.1]
 
 ### Fixed
