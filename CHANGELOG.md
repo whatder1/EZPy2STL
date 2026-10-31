@@ -3,6 +3,13 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.1]
+
+### Changed
+- CI build runner moved from `macos-14` (retired Nov 2, 2026) to `macos-15`.
+- Lockfile bumped: urllib3 to 2.8.0+ and setuptools to 84.1.0+ to clear
+  Dependabot alerts (none affect normal use of the app).
+
 ## [0.5.0]
 
 ### Added
