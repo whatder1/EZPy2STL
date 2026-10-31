@@ -127,6 +127,15 @@ See `CHANGELOG.md` for what changed in each version.
 
 ## License
 
+Copyright (C) 2026 Eli Nussbaum.
+
 EZPy2STL is free software, released under the **GNU General Public License, version 2 or (at your option) any later version** (GPL-2.0-or-later). See [`LICENSE`](LICENSE).
 
-It bundles third-party packages under their own licenses, including build123d and OCP (Apache-2.0), potracer (GPLv2+), Pillow (MIT-CMU) and lib3mf (BSD). The "or later" wording matters: Apache-2.0 code is only compatible with GPL version 3, so recipients need the option of GPLv3 for the combined app.
+It bundles third-party packages under their own licenses, including build123d and OCP (Apache-2.0), potracer (GPLv2+), Pillow (MIT-CMU) and lib3mf (BSD). Full licence texts for every bundled package are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), which is also copied into the `.app`. Regenerate it whenever dependencies change (it reads the packages installed in your environment, so run it from the one you build with):
+
+```bash
+uv sync --extra build
+uv run python tools/generate_notices.py
+```
+
+The "or later" wording matters: Apache-2.0 code is only compatible with GPL version 3, so recipients need the option of GPLv3 for the combined app.

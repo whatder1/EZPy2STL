@@ -19,7 +19,10 @@
 
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('frontend', 'frontend')]
+# LICENSE and THIRD_PARTY_NOTICES.md ship inside the .app so redistributed
+# binaries carry their licence texts (regenerate the notices with
+# tools/generate_notices.py whenever dependencies change).
+datas = [('frontend', 'frontend'), ('LICENSE', '.'), ('THIRD_PARTY_NOTICES.md', '.')]
 binaries = []
 hiddenimports = [
     # uvicorn resolves these by string name at runtime (not a static
