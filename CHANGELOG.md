@@ -3,6 +3,11 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+- `LICENSE` (GPL-2.0-or-later) and a README license section; `license` field in `pyproject.toml`.
+
 ## [0.5.1]
 
 ### Changed
