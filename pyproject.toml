@@ -1,11 +1,13 @@
 [project]
 name = "ezpy2stl"
-version = "0.4.2"
+version = "0.5.0"
 requires-python = ">=3.10,<3.15"
 dependencies = [
     "build123d>=0.8.0",
     "fastapi[standard]>=0.128.8",
     "pywebview>=6.2.1",
+    "pillow>=10.0",
+    "potracer>=0.0.4",
 ]
 
 [project.optional-dependencies]

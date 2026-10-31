@@ -3,6 +3,16 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0]
+
+### Added
+- Bundled `pillow` and `potracer` so user scripts can read PNG/JPG files
+  and trace them to vector shapes (used by the card-box generator's
+  `LID_IMAGE` option; any script may import `PIL` / `potrace`).
+
+### Notes
+- Run `uv lock` after pulling so `uv.lock` picks up the two new packages.
+
 ## [0.4.2]
 
 ### Changed
