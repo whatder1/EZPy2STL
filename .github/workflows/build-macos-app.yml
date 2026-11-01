@@ -21,20 +21,11 @@ on:
   push:
     tags:
       - "v*"
+  # No `paths:` filter on purpose: `test` and `build` are REQUIRED checks for
+  # merging to main, and a required check that never runs (a docs-only PR
+  # skipped by a path filter) leaves the PR stuck at "Expected -- waiting".
   pull_request:
     branches: [main]
-    paths:
-      - "pyproject.toml"
-      - "uv.lock"
-      - "ezpy2stl.spec"
-      - "app/**"
-      - "frontend/**"
-      - "tests/**"
-      - "tools/**"
-      - "desktop.py"
-      - "build_app.sh"
-      - "make_dmg.sh"
-      - ".github/workflows/build-macos-app.yml"
   workflow_dispatch:
 
 permissions:
