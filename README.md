@@ -153,3 +153,11 @@ uv run python tools/generate_notices.py
 ```
 
 The "or later" wording matters: Apache-2.0 code is only compatible with GPL version 3, so recipients need the option of GPLv3 for the combined app.
+
+## Update check
+
+On launch the app asks GitHub whether a newer release exists and, if so,
+shows a banner with a Download button (it opens the release page; you
+install the new DMG as usual). It makes one request to `api.github.com`
+and sends nothing identifying. To turn it off, launch with
+`EZPY2STL_NO_UPDATE_CHECK=1`.

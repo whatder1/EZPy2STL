@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .executor import build_script, WORKSPACE
+from . import updates
 from .paths import resource_path
 
 
@@ -55,6 +56,33 @@ def healthz():
     """Lets the desktop launcher confirm it is talking to this app and not
     to some other program that happens to be listening on the port."""
     return {"app": "EZPy2STL"}
+
+
+_update_info: dict | None = None
+
+
+@app.get("/update-check")
+def update_check():
+    """Newer release on GitHub? Checked once per launch, then cached."""
+    global _update_info
+    if _update_info is None:
+        _update_info = updates.check_for_update()
+    return _update_info
+
+
+@app.post("/open-update-page")
+def open_update_page():
+    """Open the release page in the default browser. The URL comes from the
+    cached check (validated to be this repo's releases), never from the request."""
+    info = _update_info or {}
+    url = info.get("url", "")
+    if not info.get("update_available") or not url.startswith(updates.RELEASES_PREFIX):
+        raise HTTPException(status_code=404, detail="No update to open")
+    try:
+        subprocess.run(["open", url], capture_output=True, timeout=10, check=True)
+    except (FileNotFoundError, subprocess.SubprocessError):
+        raise HTTPException(status_code=500, detail="Could not open the browser")
+    return {"ok": True}
 
 
 @app.get("/")

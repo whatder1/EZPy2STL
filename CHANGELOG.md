@@ -5,6 +5,19 @@ follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- Update check: on launch the app asks GitHub for the latest release and,
+  if it is newer, shows a banner with a Download button that opens the
+  release page. Notify-only (the app isn't code-signed, so it can't replace
+  itself). One request to api.github.com per launch, nothing identifying
+  sent; set `EZPY2STL_NO_UPDATE_CHECK=1` to turn it off.
+- Smoke tests that build the card-box script for real (`tests/fixtures/cardbox.py`)
+  with the script's own deprecation warnings treated as errors, so a
+  build123d change that breaks real scripts fails CI early.
+
+### Changed
+- build123d is limited to `>=0.12.0,<0.14` (the range actually tested).
+
 ## [0.7.2]
 
 ### Changed
