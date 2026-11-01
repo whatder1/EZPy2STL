@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 import {
     parseParams, formatParamLabel, formatParamLine,
-    isFilePathParam, displayComment
+    isFilePathParam, displayComment, parseChoices, parseWhen, isParamVisible
 } from "./params.js";
 
 
@@ -170,4 +170,48 @@ test("parses the card-box LID_IMAGE line with a long comment", () => {
     assert.equal(param.name, "LID_IMAGE");
     assert.equal(param.value, "");
     assert.equal(isFilePathParam(param), true);
+});
+
+
+test("parseChoices reads [choice: a|b|c] on string params only", () => {
+    const [art] = parseParams('LID_ART = "text"  # [choice: blank|text|image] what the lid shows');
+    assert.deepEqual(parseChoices(art), ["blank", "text", "image"]);
+    assert.equal(displayComment(art.comment), "what the lid shows");
+
+    const [num] = parseParams("N = 3  # [choice: a|b] nope");
+    assert.equal(parseChoices(num), null);
+
+    const [none] = parseParams('FONT = "Arial"  # typeface');
+    assert.equal(parseChoices(none), null);
+
+    const [one] = parseParams('X = "a"  # [choice: a] only one option');
+    assert.equal(parseChoices(one), null);
+});
+
+test("choice tag survives a value change (round trip)", () => {
+    const line = 'LID_ART = "text"  # [choice: blank|text|image] what the lid shows';
+    const [param] = parseParams(line);
+    assert.equal(formatParamLine(param, "image"),
+        'LID_ART = "image"  # [choice: blank|text|image] what the lid shows');
+});
+
+test("[when NAME=value] shows a row only while the controller matches", () => {
+    const params = parseParams([
+        'LID_ART = "image"  # [choice: blank|text|image] mode',
+        'LID_TEXT = "Bobbie"  # [when LID_ART=text] name',
+        'LID_IMAGE = ""  # [browse] [when LID_ART=image] picture',
+        'HEX = True  # honeycomb',
+        'HEX_SIZE = 6  # [when HEX=true] size',
+    ].join("\n"));
+
+    const visible = params.filter(p => isParamVisible(p, params)).map(p => p.name);
+    assert.deepEqual(visible, ["LID_ART", "LID_IMAGE", "HEX", "HEX_SIZE"]);
+
+    assert.deepEqual(parseWhen(params[1]), { name: "LID_ART", value: "text" });
+    assert.equal(displayComment(params[2].comment), "picture");
+});
+
+test("[when ...] with an unknown controller never hides the row", () => {
+    const params = parseParams('A = 1  # [when MISSING=x] still shown');
+    assert.equal(isParamVisible(params[0], params), true);
 });
