@@ -3,6 +3,18 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.2]
+
+### Fixed
+- **0.6.1 shipped without two Three.js files** (`frontend/vendor/three/build/`),
+  because a `build/` rule in `.gitignore` kept them out of git. The page's
+  scripts failed to load, so the app opened but nothing responded. They are
+  now committed. **Skip 0.6.1; use this release.**
+
+### Added
+- Tests that check the front-end files the page and its imports need are
+  actually tracked by git, so this can't recur silently.
+
 ## [0.6.1]
 
 ### Security
