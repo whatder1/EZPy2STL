@@ -3,6 +3,15 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Security
+- Minimum Python raised from 3.10 to 3.11. The lockfile had to keep older
+  Pillow (12.3.0) and dnspython (2.8.0) for 3.10, and GitHub raised ~40
+  Dependabot alerts against those entries. The packaged app is built on a
+  newer Python and is unaffected; the lockfile now has Pillow 13.0.0 and
+  dnspython 2.9.1 only.
+
 ## [0.7.0]
 
 ### Added
