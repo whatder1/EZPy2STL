@@ -49,6 +49,8 @@ To also produce a drag-to-Applications disk image:
 ./make_dmg.sh
 ```
 
+That writes `dist/EZPy2STL-<version>.dmg`, with the version read from `pyproject.toml` (for example `dist/EZPy2STL-0.7.1.dmg`). Release builds on GitHub use the same name.
+
 **First launch will be blocked by Gatekeeper once**, since this isn't code-signed:
 - Right-click the app → Open → Open, or
 - `xattr -cr 'dist/EZPy2STL.app'`

@@ -3,6 +3,13 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Changed
+- The disk image is now named with its version, `EZPy2STL-<version>.dmg`
+  (read from `pyproject.toml`, which the release workflow already checks
+  against the git tag), locally and on the GitHub Release.
+
 ## [0.7.1]
 
 ### Security

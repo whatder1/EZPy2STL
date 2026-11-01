@@ -80,7 +80,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: EZPy2STL-dmg
-          path: dist/EZPy2STL.dmg
+          path: dist/EZPy2STL-*.dmg
           retention-days: 7
 
   release:
@@ -112,7 +112,7 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/EZPy2STL.dmg
+          files: dist/EZPy2STL-*.dmg
           body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
