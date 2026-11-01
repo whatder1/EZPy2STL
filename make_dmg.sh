@@ -3,8 +3,16 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+# The version comes from pyproject.toml -- the same number the release
+# workflow checks against the git tag -- so the file is EZPy2STL-0.7.1.dmg.
+VERSION=$(grep -m1 '^version' pyproject.toml | sed -E 's/^version *= *"([^"]+)".*/\1/')
+if [ -z "$VERSION" ]; then
+    echo "Could not read the version from pyproject.toml."
+    exit 1
+fi
+
 APP="dist/EZPy2STL.app"
-DMG="dist/EZPy2STL.dmg"
+DMG="dist/EZPy2STL-${VERSION}.dmg"
 
 if [ ! -d "$APP" ]; then
     echo "No built app found at '$APP'. Run ./build_app.sh first."
