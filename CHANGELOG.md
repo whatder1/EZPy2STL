@@ -5,6 +5,8 @@ follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.7.2]
+
 ### Changed
 - The disk image is now named with its version, `EZPy2STL-<version>.dmg`
   (read from `pyproject.toml`, which the release workflow already checks

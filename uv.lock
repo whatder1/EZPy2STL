@@ -488,7 +488,7 @@ wheels = [
 
 [[package]]
 name = "ezpy2stl"
-version = "0.7.1"
+version = "0.7.2"
 source = { virtual = "." }
 dependencies = [
     { name = "build123d" },
