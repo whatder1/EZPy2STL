@@ -633,6 +633,26 @@
             display: flex;
         }
 
+        #update-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 16px;
+            background: var(--accent-dim);
+            border-bottom: 1px solid var(--accent);
+            font-size: 13px;
+        }
+
+        #update-banner.visible {
+            display: flex;
+        }
+
+        #update-banner .btn {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
         #recovery-banner .btn {
             padding: 4px 12px;
             font-size: 12px;
@@ -834,6 +854,14 @@
     <div id="layout">
 
         <div id="left">
+
+            <div id="update-banner">
+                <span id="update-text"></span>
+                <span style="display: flex; gap: 8px;">
+                    <button id="update-dismiss" class="btn">Later</button>
+                    <button id="update-open" class="btn btn-primary">Download</button>
+                </span>
+            </div>
 
             <div id="recovery-banner">
                 <span>Recovered unsaved work from your last session.</span>

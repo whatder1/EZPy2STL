@@ -509,7 +509,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "build123d", specifier = ">=0.12.0" },
+    { name = "build123d", specifier = ">=0.12.0,<0.14" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.162.0" },
     { name = "pillow", specifier = ">=10.0" },
     { name = "potracer", specifier = ">=0.0.4" },

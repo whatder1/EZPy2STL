@@ -1283,6 +1283,36 @@ async function checkForRecovery() {
 
 checkForRecovery();
 
+async function checkForUpdate() {
+    let info;
+    try {
+        const response = await fetch("/update-check");
+        info = await response.json();
+    } catch (error) {
+        return;
+    }
+
+    if (!info.update_available) {
+        return;
+    }
+
+    const banner = document.getElementById("update-banner");
+    document.getElementById("update-text").textContent =
+        `EZPy2STL ${info.latest} is available (you have ${info.current}).`;
+    banner.classList.add("visible");
+
+    document.getElementById("update-dismiss").addEventListener(
+        "click", () => banner.classList.remove("visible"), { once: true });
+
+    document.getElementById("update-open").addEventListener("click", async () => {
+        try {
+            await fetch("/open-update-page", { method: "POST" });
+        } catch (error) { /* nothing useful to show */ }
+    });
+}
+
+checkForUpdate();
+
 
 // ------------------------------------------------------------
 // FILE STATE (open/save)
