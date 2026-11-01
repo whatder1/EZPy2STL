@@ -18,5 +18,15 @@ dist/
 # regenerate by clicking Build, don't commit personal model output
 *.stl
 
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+
+# Generated model output of any format, and the editor's recovery copy
+*.step
+*.stp
+*.3mf
+.autosave.py
+
 # macOS
 .DS_Store

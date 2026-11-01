@@ -16,6 +16,15 @@ echo "Building EZPy2STL.app..."
 uv run pyinstaller ezpy2stl.spec --noconfirm --clean
 
 echo ""
+echo "Signing the bundle (ad-hoc)..."
+xattr -cr dist/EZPy2STL.app 2>/dev/null || true
+if ! codesign --force --deep --sign - dist/EZPy2STL.app; then
+    echo "warning: ad-hoc signing failed. This is usually Finder/iCloud metadata on the" >&2
+    echo "files when the project lives under ~/Documents or ~/Desktop; building from a" >&2
+    echo "folder like ~/Developer avoids it. The app may still run." >&2
+fi
+
+echo ""
 echo "Smoke-testing the bundle (the imports user scripts rely on)..."
 CHECK="$(mktemp -t ezpy2stl_check).py"
 cat > "$CHECK" <<'PY'

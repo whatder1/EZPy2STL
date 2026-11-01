@@ -12,14 +12,53 @@ restriction: the dialogs run in Python and hand back real paths.
 Run with:  uv run python desktop.py
 """
 
+import runpy
+import sys
+import traceback
+
+
+def run_user_script(path: str) -> int:
+    """Entry point used when this same frozen binary is re-invoked as a
+    subprocess to run one build123d script in isolation (see
+    app/executor.py's _script_subprocess_args). Only reachable in a
+    frozen build -- in dev mode, executor.py just runs a real
+    `python script.py` instead.
+
+    Runs the target file the same way `python path` would (fresh
+    __main__ namespace), and translates the outcome into a process exit
+    code so the parent's subprocess.run(...).returncode still means
+    what it always has.
+
+    This lives ABOVE the heavy imports (uvicorn, pywebview, the FastAPI
+    app) on purpose: every Build spawns a fresh copy of this binary, and
+    a build script needs none of that -- importing it first made each
+    build pay for a whole GUI stack it never uses."""
+
+    try:
+        runpy.run_path(path, run_name="__main__")
+    except SystemExit as exc:
+        if exc.code is None:
+            return 0
+        return exc.code if isinstance(exc.code, int) else 1
+    except Exception:
+        traceback.print_exc()
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__" and len(sys.argv) >= 3 and sys.argv[1] == "--run-user-script":
+    sys.exit(run_user_script(sys.argv[2]))
+
+
+
 import json
 import logging
 import logging.handlers
 import os
-import sys
+import socket
 import threading
 import time
-import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -66,8 +105,25 @@ sys.excepthook = _log_uncaught
 
 
 HOST = "127.0.0.1"
-PORT = 8000
-URL = f"http://{HOST}:{PORT}"
+
+# The port is chosen at launch (see main()) instead of being fixed: a fixed
+# 8000 collides with other local dev servers, and the old startup check
+# would then happily treat THEIR server as ours and load it in the window.
+# These are placeholders until main() fills them in.
+PORT = 0
+URL = ""
+
+
+def _find_free_port() -> int:
+    """Ask the OS for an unused port on localhost. EZPY2STL_PORT pins one
+    for debugging."""
+    forced = os.environ.get("EZPY2STL_PORT")
+    if forced and forced.isdigit():
+        return int(forced)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind((HOST, 0))
+        return sock.getsockname()[1]
 
 PY_FILE_TYPES = ("Python Files (*.py)", "All files (*.*)")
 IMAGE_FILE_TYPES = (
@@ -267,47 +323,29 @@ def start_server():
 
 
 def wait_for_server(timeout=10):
+    """Wait until OUR server answers on URL. Checks /healthz for the app's
+    own marker, so some other program that happens to be listening is
+    never mistaken for it."""
     deadline = time.time() + timeout
 
     while time.time() < deadline:
         try:
-            urllib.request.urlopen(URL, timeout=0.5)
-            return True
-        except (urllib.error.URLError, ConnectionError):
-            time.sleep(0.1)
+            with urllib.request.urlopen(f"{URL}/healthz", timeout=0.5) as resp:
+                if json.loads(resp.read().decode("utf-8")).get("app") == "EZPy2STL":
+                    return True
+        except (urllib.error.URLError, ConnectionError, ValueError, OSError):
+            pass
+        time.sleep(0.1)
 
     return False
 
 
-def run_user_script(path: str) -> int:
-    """Entry point used when this same frozen binary is re-invoked as a
-    subprocess to run one build123d script in isolation (see
-    app/executor.py's _script_subprocess_args). Only reachable in a
-    frozen build -- in dev mode, executor.py just runs a real
-    `python script.py` instead and this is never called.
-
-    Runs the target file the same way `python path` would (fresh
-    __main__ namespace), and translates the outcome into a process exit
-    code so the parent's subprocess.run(...).returncode still means
-    what it always has."""
-
-    import runpy
-
-    try:
-        runpy.run_path(path, run_name="__main__")
-    except SystemExit as exc:
-        if exc.code is None:
-            return 0
-        return exc.code if isinstance(exc.code, int) else 1
-    except Exception:
-        traceback.print_exc()
-        return 1
-
-    return 0
-
-
 def main():
-    logger.info("Starting EZPy2STL")
+    global PORT, URL
+    PORT = _find_free_port()
+    URL = f"http://{HOST}:{PORT}"
+
+    logger.info(f"Starting EZPy2STL on {URL}")
 
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
@@ -339,11 +377,10 @@ def main():
 
 if __name__ == "__main__":
 
-    if len(sys.argv) >= 3 and sys.argv[1] == "--run-user-script":
-        sys.exit(run_user_script(sys.argv[2]))
-    else:
-        try:
-            main()
-        except Exception:
-            logger.critical("Fatal error during startup", exc_info=True)
-            raise
+    # (--run-user-script is handled at the top of this file, before the
+    # heavy imports; by the time we get here it's the normal GUI launch.)
+    try:
+        main()
+    except Exception:
+        logger.critical("Fatal error during startup", exc_info=True)
+        raise

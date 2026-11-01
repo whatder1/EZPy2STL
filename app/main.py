@@ -5,12 +5,23 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .executor import build_script, WORKSPACE
 from .paths import resource_path
 
 
 app = FastAPI(title="EZPy2STL")
+
+# Only answer requests addressed to localhost. A malicious web page can
+# point its own hostname at 127.0.0.1 ("DNS rebinding") and then talk to
+# this server from the browser -- and this server runs Python scripts. Such
+# requests carry the attacker's hostname in the Host header, so refusing
+# any other Host closes that route. ("testserver" is Starlette's test
+# client.)
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver"]
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
 
 app.mount(
     "/static",
@@ -37,6 +48,13 @@ AUTOSAVE_PATH = WORKSPACE / ".autosave.py"
 # to exactly these paths -- never an arbitrary filesystem path -- so a
 # requested name can't escape the workspace directory.
 _last_build_files: dict[str, Path] = {}
+
+
+@app.get("/healthz")
+def healthz():
+    """Lets the desktop launcher confirm it is talking to this app and not
+    to some other program that happens to be listening on the port."""
+    return {"app": "EZPy2STL"}
 
 
 @app.get("/")

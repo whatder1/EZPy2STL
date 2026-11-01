@@ -98,6 +98,22 @@ def licence_texts(dist):
     return out
 
 
+def vendored_lines():
+    """Licence texts for the front-end libraries copied into
+    frontend/vendor/ (Three.js, CodeMirror, fonts) -- not Python packages,
+    so the dependency walk above can't see them."""
+    vendor = ROOT / "frontend" / "vendor"
+    lines = ["", "## Bundled front-end libraries", "",
+             "Copied into `frontend/vendor/` (versions in "
+             "`frontend/vendor/README.md`).", ""]
+    for lic in sorted(vendor.glob("*/LICENSE*")):
+        text = lic.read_text(errors="replace").strip()
+        lines += [f"### {lic.parent.name}", "",
+                  f"<details><summary>{lic.name}</summary>", "", "```", text, "```", "",
+                  "</details>", ""]
+    return lines
+
+
 def main():
     pkgs = closure(project_requirements())
     lines = [
@@ -127,6 +143,7 @@ def main():
         for fname, text in licence_texts(d):
             lines += [f"<details><summary>{fname}</summary>", "", "```", text, "```", "",
                       "</details>", ""]
+    lines += vendored_lines()
     OUT.write_text("\n".join(lines))
     unknown = [e["dist"].metadata["Name"] for e in rows
                if "UNKNOWN" in licence_label(e["dist"].metadata)]

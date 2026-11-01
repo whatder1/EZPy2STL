@@ -1,11 +1,8 @@
-import * as THREE from
-    'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import * as THREE from 'three';
 
-import { OrbitControls } from
-    'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-import { STLLoader } from
-    'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/STLLoader.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
 import { parseParams, formatParamLabel, formatParamLine, isFilePathParam, displayComment } from
     './params.js';
