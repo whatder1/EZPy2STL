@@ -3,6 +3,18 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.0]
+
+### Added
+- **Dropdown parameters.** A string constant whose comment contains
+  `[choice: a|b|c]` is shown as a dropdown instead of a free-text box, so only
+  values the script understands can be picked.
+- **Conditional parameters.** A comment tag `[when NAME=value]` shows a row only
+  while parameter `NAME` has that value (case-insensitive; works with
+  dropdowns and True/False switches). Settings for an unselected mode simply
+  disappear. An unknown `NAME` never hides a row.
+- Tests for both tags (22 front-end tests).
+
 ## [0.6.2]
 
 ### Fixed

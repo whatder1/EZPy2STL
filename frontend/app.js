@@ -4,7 +4,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
-import { parseParams, formatParamLabel, formatParamLine, isFilePathParam, displayComment } from
+import { parseParams, formatParamLabel, formatParamLine, isFilePathParam, displayComment,
+    parseChoices, isParamVisible } from
     './params.js';
 
 
@@ -821,6 +822,12 @@ function renderParamsPanel() {
 
     for (const param of params) {
 
+        // [when NAME=value] rows only show while their controlling
+        // parameter has that value (e.g. text settings vs image settings).
+        if (!isParamVisible(param, params)) {
+            continue;
+        }
+
         const row =
             document.createElement("div");
 
@@ -875,7 +882,10 @@ function renderParamsPanel() {
 
             input.addEventListener(
                 "change",
-                () => writeParamValue(param, input.checked)
+                () => {
+                    writeParamValue(param, input.checked);
+                    renderParamsPanel();   // a [when ...] row may appear/disappear
+                }
             );
 
         } else if (param.type === "number") {
@@ -890,6 +900,43 @@ function renderParamsPanel() {
                 "change",
                 () => writeParamValue(param, Number(input.value))
             );
+
+        } else if (parseChoices(param)) {
+
+            // [choice: a|b|c] -> a dropdown instead of a free-text box, so
+            // the only values you can pick are ones the script understands.
+            const choices = parseChoices(param);
+
+            if (!choices.includes(param.value)) {
+                choices.push(param.value);   // never silently change a hand-typed value
+            }
+
+            const select =
+                document.createElement("select");
+
+            select.className = "param-select";
+
+            for (const choice of choices) {
+
+                const option =
+                    document.createElement("option");
+
+                option.value = choice;
+                option.textContent = choice;
+                select.appendChild(option);
+            }
+
+            select.value = param.value;
+
+            select.addEventListener(
+                "change",
+                () => {
+                    writeParamValue(param, select.value);
+                    renderParamsPanel();   // a [when ...] row may appear/disappear
+                }
+            );
+
+            controlWrap.appendChild(select);
 
         } else {
 
@@ -909,7 +956,10 @@ function renderParamsPanel() {
             }
         }
 
-        controlWrap.appendChild(input);
+        // (a [choice: ...] param already appended its <select> above)
+        if (!controlWrap.querySelector("select")) {
+            controlWrap.appendChild(input);
+        }
 
         if (isFilePathParam(param)) {
 

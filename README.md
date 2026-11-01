@@ -99,6 +99,9 @@ Everything is pinned in `pyproject.toml` / `uv.lock`. Add a new dependency to `p
 - Scripts run with their working directory set to a dedicated workspace folder (in the frozen app: `~/Library/Application Support/EZPy2STL/workspace`), not next to the `.py` file. Output files (`*.stl`, `*.step`, `*.3mf`) written there appear in the file list.
 - **Use full paths for any input file** a script reads (an SVG, PNG or JPG for example), e.g. `"/Users/you/Documents/logo.svg"`. A bare filename only works if the file is in the workspace folder.
 - Parameters that hold a file path (names ending in `IMAGE`, `PATH` or `FILE`, or a `[browse]` tag in the comment) get a **Browse...** button in the Parameters panel. It needs the desktop app; in a plain browser tab, paste a full path.
+- Two more comment tags shape the Parameters panel (they're ordinary `#` comments, so the script still runs anywhere):
+  - `# [choice: blank|text|image] hint` turns a string constant into a **dropdown** of those values.
+  - `# [when LID_ART=text] hint` shows that row only while `LID_ART` equals `text` (works with dropdowns and True/False switches), so unused settings disappear.
 - `pillow` and `potracer` are bundled, so scripts can load PNG/JPG files and trace them into vector shapes (the card-box generator's `LID_IMAGE` option uses this).
 - Logs: `~/Library/Logs/EZPy2STL/app.log`. Include it when reporting a bug.
 

@@ -124,10 +124,79 @@ export function isFilePathParam(param) {
 }
 
 
-// Hint text shown under the label: the [browse] tag is a marker for the
-// UI, not something to display. (The stored comment keeps it, so saving a
-// changed value never drops the tag from the script.)
+// Comment tags that drive the Parameters panel. They live inside the
+// script's own `# comment`, so a script stays plain, runnable Python:
+//
+//   [browse]              string param gets a Browse... file picker
+//   [choice: a|b|c]       string param is shown as a dropdown of a, b, c
+//   [when NAME=value]     row is only shown while parameter NAME == value
+//                         (so a "text" group disappears when "image" is picked)
+//
+// The tags are markers for the UI, not hint text: displayComment hides them,
+// but the stored comment keeps them, so saving a changed value never drops one.
+
+const CHOICE_TAG = /\[choice:\s*([^\]]+)\]/i;
+const WHEN_TAG = /\[when\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^\]]+?)\s*\]/i;
+
+
+// Allowed values for a [choice: a|b|c] string param, or null.
+export function parseChoices(param) {
+
+    if (param.type !== "string") {
+        return null;
+    }
+
+    const match = param.comment.match(CHOICE_TAG);
+
+    if (!match) {
+        return null;
+    }
+
+    const choices = match[1]
+        .split("|")
+        .map(choice => choice.trim())
+        .filter(choice => choice.length > 0);
+
+    return choices.length >= 2 ? choices : null;
+}
+
+
+// {name, value} from a [when NAME=value] tag, or null.
+export function parseWhen(param) {
+
+    const match = param.comment.match(WHEN_TAG);
+
+    return match ? { name: match[1], value: match[2] } : null;
+}
+
+
+// Should this row be shown, given every parsed param? No tag -> always.
+// An unknown controlling name -> shown (never hide something because of a
+// typo). Compared case-insensitively as text, so True/true both match a bool.
+export function isParamVisible(param, allParams) {
+
+    const when = parseWhen(param);
+
+    if (!when) {
+        return true;
+    }
+
+    const controller = allParams.find(p => p.name === when.name);
+
+    if (!controller) {
+        return true;
+    }
+
+    return String(controller.value).toLowerCase() === when.value.toLowerCase();
+}
+
+
+// Hint text shown under the label, with the UI tags removed.
 export function displayComment(comment) {
 
-    return comment.replace(/\s*\[browse\]\s*/i, " ").trim();
+    return comment
+        .replace(/\s*\[browse\]\s*/i, " ")
+        .replace(new RegExp("\\s*" + CHOICE_TAG.source + "\\s*", "i"), " ")
+        .replace(new RegExp("\\s*" + WHEN_TAG.source + "\\s*", "i"), " ")
+        .trim();
 }
