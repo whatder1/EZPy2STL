@@ -5,6 +5,8 @@ follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.8.0]
+
 ### Added
 - Update check: on launch the app asks GitHub for the latest release and,
   if it is newer, shows a banner with a Download button that opens the
