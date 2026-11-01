@@ -8,6 +8,8 @@ Archive.zip
 
 # Build artifacts (regenerate with build_app.sh / make_dmg.sh)
 build/
+# ...but NOT the vendored Three.js build/ directory (it holds the library itself)
+!frontend/vendor/three/build/
 dist/
 
 # Runtime workspace -- generated build output from running scripts,
