@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 # The version comes from pyproject.toml -- the same number the release
-# workflow checks against the git tag -- so the file is EZPy2STL-0.7.1.dmg.
+# workflow checks against the git tag -- so the file is EZPy2STL-0.7.2.dmg.
 VERSION=$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' pyproject.toml | head -1)
 if [ -z "$VERSION" ]; then
     echo "Could not read the version from pyproject.toml."
