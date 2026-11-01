@@ -33,7 +33,7 @@ There's also a browser-only mode, mainly useful for quick debugging with dev too
 uv run uvicorn app.main:app --reload
 ```
 
-then visit `http://127.0.0.1:8000`. Open/Save won't fully work here — browsers deliberately don't expose a picked file's real filesystem path to JavaScript, and Safari specifically opposes the newer API that would allow saving back to an exact path. Prefer `desktop.py` for real use.
+then visit `http://127.0.0.1:8000` (the desktop app picks a free port on its own; only this browser mode uses 8000). Open/Save won't fully work here — browsers deliberately don't expose a picked file's real filesystem path to JavaScript, and Safari specifically opposes the newer API that would allow saving back to an exact path. Prefer `desktop.py` for real use.
 
 ## Building the standalone `.app`
 
@@ -82,7 +82,7 @@ Everything is pinned in `pyproject.toml` / `uv.lock`. Add a new dependency to `p
    ```
    Pay closest attention after upgrading **build123d**/**cadquery-ocp** (the CAD kernel) or **pywebview** (the native window/dialog layer) — these are the two most likely to need a follow-up tweak to `ezpy2stl.spec`'s `collect_all(...)` list if their internal module structure changes between versions.
 
-3. **Three.js**, used only in the browser frontend, is pinned separately via CDN URLs in `frontend/index.html` (the import map) and `frontend/app.js` — it isn't managed by uv at all. Bump the version number in both places together if you want a newer release.
+3. **Front-end libraries** (Three.js, CodeMirror, the IBM Plex fonts) are copied into `frontend/vendor/` rather than loaded from a CDN, so the app works offline and no third-party host can inject code into a page that can run Python. They aren't managed by uv or Dependabot: to upgrade one, follow `frontend/vendor/README.md` and update the versions listed there.
 
 ## Architecture
 
@@ -90,7 +90,7 @@ Everything is pinned in `pyproject.toml` / `uv.lock`. Add a new dependency to `p
 - `app/executor.py` — runs a script in an isolated subprocess. In dev mode that's a real Python interpreter; in the frozen `.app` it's a self-relaunch of the same frozen binary with a `--run-user-script` flag, since a frozen executable can't be invoked as `python script.py` the way a real interpreter can. See the comments in this file for the full reasoning.
 - `app/paths.py` — resolves file paths correctly whether running from source or from inside the frozen `.app` (bundled resources vs. a writable per-user data directory).
 - `desktop.py` — the native app entry point: starts the FastAPI server in a background thread, opens a pywebview window pointing at it, and exposes native Open/Save dialogs to the frontend via `window.pywebview.api`.
-- `frontend/` — the UI itself: script editor, an auto-detected parameter panel (built from any `NAME = value  # comment` lines in the loaded script), a Three.js viewer, the file list/download/OrcaSlicer controls, and a View menu (toolbar) for showing/hiding any of those panels.
+- `frontend/` — the UI itself: script editor, an auto-detected parameter panel (built from any `NAME = value  # comment` lines in the loaded script), a Three.js viewer, the file list/download/OrcaSlicer controls, and a View menu (toolbar) for showing/hiding any of those panels. `frontend/vendor/` holds the bundled third-party libraries.
 - `ezpy2stl.spec` — the PyInstaller spec for the standalone `.app`.
 - `resources/AppIcon.icns` — the app icon.
 
@@ -106,14 +106,22 @@ Everything is pinned in `pyproject.toml` / `uv.lock`. Add a new dependency to `p
 
 - macOS only, by design of the current tooling.
 - Ad-hoc signed only, not notarized — see the Gatekeeper note above.
-- **Security scope, stated plainly:** the backend executes arbitrary Python you give it, with your full user-account permissions. That's an acceptable trade-off for a single-user local tool bound to `127.0.0.1` — never expose this past localhost without adding real authentication first.
+- **Security scope, stated plainly:** the backend executes arbitrary Python you give it, with your full user-account permissions. That's an acceptable trade-off for a single-user local tool bound to `127.0.0.1` — never expose this past localhost without adding real authentication first. Mitigations in place: it listens only on localhost on a random port, refuses any request whose `Host` header isn't localhost (blocks DNS-rebinding from web pages), serves only files the last build produced, and loads no third-party scripts. It does **not** authenticate other programs running as you on the same Mac.
 - No script version history. Unsaved editor changes are autosaved and offered back on next launch, but that is a safety net, not history: use Save/Save As.
-- The 3D viewer loads Three.js from a CDN (see above), so the viewer needs an internet connection even in the standalone `.app`. Everything else works offline.
 - Every "Build" click in the frozen `.app` re-imports the full FastAPI/pywebview stack before running your script (a side effect of the self-relaunch approach above), so builds are somewhat slower there than in dev mode.
+
+## Tests
+
+```bash
+uv run --extra test pytest        # backend, file-serving whitelist, Host check, build fast path
+node --test frontend/params.test.mjs   # parameter parsing
+```
+
+CI runs both on every pull request and tag.
 
 ## Releases and versioning
 
-`.github/workflows/build-macos-app.yml` builds `EZPy2STL.app` + `.dmg` on GitHub's macOS runners (currently `macos-15`; GitHub retires old runner images, so expect to bump this label now and then) and attaches them to a GitHub Release whenever you push a version tag. Pull requests get a build-only check with no release.
+`.github/workflows/build-macos-app.yml` builds `EZPy2STL.app` + `.dmg` on GitHub's macOS runners (currently `macos-15`; GitHub retires old runner images, so expect to bump this label now and then) and attaches them to a GitHub Release whenever you push a version tag. Pull requests get tests plus a build-only check with no release. A tag build first checks that the tag matches the version in `pyproject.toml` and `ezpy2stl.spec` and that `CHANGELOG.md` has a section for it, then publishes the `.dmg` with that section as the release notes. Only the final publish step has write access.
 
 Each push that should ship gets its own version: bump `version` in `pyproject.toml`, `CFBundleShortVersionString` in `ezpy2stl.spec`, and add an entry to `CHANGELOG.md`, then:
 

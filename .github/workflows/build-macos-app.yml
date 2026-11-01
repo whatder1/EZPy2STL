@@ -1,17 +1,19 @@
 # Builds EZPy2STL.app + a .dmg on GitHub's macOS runners.
 #
-# Two triggers, two purposes:
-#   - Pull requests that touch dependency/build files: build-only check,
-#     no release published. This is what verifies a Dependabot PR
-#     actually still builds before you merge it -- confirmed working
-#     as of the v0.2.0 build (which caught a real lib3mf packaging
-#     break before it reached main).
-#   - A pushed version tag: same build, plus publishes the .dmg to a
-#     GitHub Release.
+# Pipeline:
+#   test     -- unit tests (Python + front-end) on every run; on a version
+#               tag it also checks the tag matches the version files, so a
+#               release can never ship with a stale version number.
+#   build    -- freezes the .app and makes the .dmg on macOS (smoke-tested
+#               by build_app.sh).
+#   release  -- ONLY for a pushed version tag: publishes the .dmg to a
+#               GitHub Release, with notes taken from CHANGELOG.md. This is
+#               the only job with write access; builds triggered by pull
+#               requests (including Dependabot's) can never publish.
 #
 # Usage for a release:
-#   git tag v0.2.0
-#   git push --tags
+#   1. bump version in pyproject.toml + ezpy2stl.spec, add a CHANGELOG entry
+#   2. git tag vX.Y.Z && git push origin vX.Y.Z
 
 name: Build macOS App
 
@@ -27,18 +29,50 @@ on:
       - "ezpy2stl.spec"
       - "app/**"
       - "frontend/**"
+      - "tests/**"
+      - "tools/**"
       - "desktop.py"
       - "build_app.sh"
       - "make_dmg.sh"
       - ".github/workflows/build-macos-app.yml"
   workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: macos-15
-    permissions:
-      contents: write
+permissions:
+  contents: read
 
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+
+      - name: Python tests
+        run: uv run --extra test pytest -q
+
+      - name: Front-end tests
+        run: node --test frontend/params.test.mjs
+
+      - name: Check tag matches version files
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PY_VERSION=$(grep -m1 '^version' pyproject.toml | sed -E 's/^version *= *"([^"]+)".*/\1/')
+          SPEC_VERSION=$(grep -m1 'CFBundleShortVersionString' ezpy2stl.spec | sed -E "s/.*: *'([^']+)'.*/\1/")
+          echo "tag=$TAG_VERSION pyproject=$PY_VERSION spec=$SPEC_VERSION"
+          fail=0
+          [ "$TAG_VERSION" = "$PY_VERSION" ]   || { echo "::error::pyproject.toml version ($PY_VERSION) does not match tag ($TAG_VERSION)"; fail=1; }
+          [ "$TAG_VERSION" = "$SPEC_VERSION" ] || { echo "::error::ezpy2stl.spec version ($SPEC_VERSION) does not match tag ($TAG_VERSION)"; fail=1; }
+          grep -q "^## \[$TAG_VERSION\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no '## [$TAG_VERSION]' section"; fail=1; }
+          exit $fail
+
+  build:
+    needs: test
+    runs-on: macos-15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -51,10 +85,43 @@ jobs:
       - name: Build dmg
         run: ./make_dmg.sh
 
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Keep the dmg for the release job
+        uses: actions/upload-artifact@v4
+        with:
+          name: EZPy2STL-dmg
+          path: dist/EZPy2STL.dmg
+          retention-days: 7
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: EZPy2STL-dmg
+          path: dist
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { found=1; next }
+            /^## \[/               { found=0 }
+            found
+          ' CHANGELOG.md > release_notes.md
+          test -s release_notes.md || { echo "::error::no CHANGELOG notes found for $VERSION"; exit 1; }
+          cat release_notes.md
+
+      - name: Publish release
         uses: softprops/action-gh-release@v3
         with:
           files: dist/EZPy2STL.dmg
+          body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

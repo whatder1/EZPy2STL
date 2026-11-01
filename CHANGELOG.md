@@ -3,6 +3,38 @@
 All notable changes to EZPy2STL are recorded here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.1]
+
+### Security
+- **No more third-party scripts.** Three.js, CodeMirror and the IBM Plex fonts
+  are bundled in `frontend/vendor/` instead of loaded from CDNs. A CDN script
+  ran in the same page that can POST to `/build` (run Python as you), so a
+  compromised CDN file could have meant code execution. Side effect: the
+  viewer and editor now work offline.
+- The server now picks a free port at launch (was a fixed 8000, which could
+  collide with another local server and be mistaken for ours) and confirms
+  its own `/healthz` marker before opening the window.
+- Requests whose `Host` header isn't localhost are refused (blocks DNS
+  rebinding from web pages).
+
+### Changed
+- **Faster builds in the packaged app:** `--run-user-script` now runs before
+  the GUI/server imports (uvicorn, pywebview, FastAPI) instead of after, so
+  each Build no longer pays for a stack it never uses, and no longer opens the
+  app log file.
+- `build_app.sh` ad-hoc signs the bundle itself (after clearing Finder/iCloud
+  attributes) and explains the common cause if signing fails.
+- CI: tests run on every PR/tag; tag builds verify the tag matches the version
+  files and CHANGELOG; the release job (the only one with write access)
+  publishes the `.dmg` with the CHANGELOG section as release notes.
+- Dependabot groups routine minor/patch updates into one weekly PR.
+- `.gitignore`: also ignores `.step`/`.3mf` output, `.autosave.py` and tool caches.
+
+### Added
+- Tests for the file-serving whitelist (path-escape attempts), the Host
+  check, autosave, `/open-in-slicer`, and the build fast path.
+- Notices generator includes the bundled front-end libraries' licences.
+
 ## [0.6.0]
 
 ### Added
