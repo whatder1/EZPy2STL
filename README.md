@@ -13,7 +13,7 @@ Editing a build123d script normally means round-tripping between an editor, a te
 ## Requirements
 
 - macOS. Native Open/Save dialogs and "Open in OrcaSlicer" are macOS-specific (they shell out to `open -a OrcaSlicer` and use pywebview's Cocoa backend). The FastAPI + build123d core is not inherently macOS-only, but this repo's tooling (the `.app` build, the OrcaSlicer integration) assumes it.
-- Python 3.10 to 3.14 (matches build123d's supported range; see `requires-python` in `pyproject.toml`)
+- Python 3.11 to 3.14 (see `requires-python` in `pyproject.toml`). 3.10 was dropped so the lockfile carries one patched version of each package; the 3.10-only versions of Pillow and dnspython were stuck on releases with known vulnerabilities.
 - [uv](https://docs.astral.sh/uv/) for dependency management — this project doesn't use plain `pip`/`venv` directly.
 
 ## Quick start (development mode)
