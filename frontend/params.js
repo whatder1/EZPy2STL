@@ -108,3 +108,26 @@ export function formatParamLine(param, newValue) {
 
     return `${param.name} = ${formattedValue}${commentSuffix}`;
 }
+
+
+// A string constant gets a "Browse..." button (native file picker) when its
+// name ends in IMAGE / PATH / FILE, or its comment carries a [browse] tag.
+export const FILE_PARAM_NAME = /(IMAGE|PATH|FILE)$/;
+
+
+export function isFilePathParam(param) {
+
+    return param.type === "string" && (
+        FILE_PARAM_NAME.test(param.name) ||
+        /\[browse\]/i.test(param.comment)
+    );
+}
+
+
+// Hint text shown under the label: the [browse] tag is a marker for the
+// UI, not something to display. (The stored comment keeps it, so saving a
+// changed value never drops the tag from the script.)
+export function displayComment(comment) {
+
+    return comment.replace(/\s*\[browse\]\s*/i, " ").trim();
+}

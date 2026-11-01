@@ -8,7 +8,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseParams, formatParamLabel, formatParamLine } from "./params.js";
+import {
+    parseParams, formatParamLabel, formatParamLine,
+    isFilePathParam, displayComment
+} from "./params.js";
 
 
 test("detects a simple numeric constant", () => {
@@ -133,4 +136,38 @@ test("round-trip: parse then reformat produces an equivalent line", () => {
     const [param] = parseParams(original);
     const rebuilt = formatParamLine(param, param.value);
     assert.equal(rebuilt, original);
+});
+
+
+test("isFilePathParam: IMAGE/PATH/FILE names and [browse] tag, strings only", () => {
+    const [img] = parseParams('LID_IMAGE = ""  # pick one');
+    assert.equal(isFilePathParam(img), true);
+
+    const [tagged] = parseParams('LOGO = ""  # [browse] logo');
+    assert.equal(isFilePathParam(tagged), true);
+
+    const [plain] = parseParams('FONT = "Arial"  # typeface');
+    assert.equal(isFilePathParam(plain), false);
+
+    const [num] = parseParams('IMAGE_SCALE = 100  # percent');
+    assert.equal(isFilePathParam(num), false);
+
+    const [flag] = parseParams('USE_IMAGE = True  # on/off');
+    assert.equal(isFilePathParam(flag), false);
+});
+
+test("displayComment hides the [browse] tag but formatParamLine keeps it", () => {
+    const line = 'LID_IMAGE = ""  # [browse] image for the lid';
+    const [param] = parseParams(line);
+    assert.equal(displayComment(param.comment), "image for the lid");
+    assert.equal(formatParamLine(param, "/tmp/a.png"),
+        'LID_IMAGE = "/tmp/a.png"  # [browse] image for the lid');
+});
+
+test("parses the card-box LID_IMAGE line with a long comment", () => {
+    const [param] = parseParams(
+        'LID_IMAGE      = ""        # [browse] image engraved on the lid instead of the name ("" = use the name)');
+    assert.equal(param.name, "LID_IMAGE");
+    assert.equal(param.value, "");
+    assert.equal(isFilePathParam(param), true);
 });

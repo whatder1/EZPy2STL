@@ -70,6 +70,10 @@ PORT = 8000
 URL = f"http://{HOST}:{PORT}"
 
 PY_FILE_TYPES = ("Python Files (*.py)", "All files (*.*)")
+IMAGE_FILE_TYPES = (
+    "Images (*.svg;*.png;*.jpg;*.jpeg)",
+    "All files (*.*)",
+)
 
 RECENT_FILES_PATH = app_support_dir() / "recent_files.json"
 MAX_RECENT_FILES = 8
@@ -124,6 +128,24 @@ class Api:
 
         path = result[0]
         return self._read_path(path)
+
+    def pick_image(self):
+        """Native file picker for the parameter panel's Browse button.
+        Returns the chosen path as a string (or None if cancelled). It
+        deliberately returns only the path, never file contents -- the
+        script reads the file itself when it runs."""
+
+        window = webview.windows[0]
+
+        result = window.create_file_dialog(
+            webview.FileDialog.OPEN,
+            file_types=IMAGE_FILE_TYPES,
+        )
+
+        if not result:
+            return None
+
+        return result[0]
 
     def open_recent(self, path):
         """Open a path from the recent-files list. Only reads paths

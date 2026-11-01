@@ -7,7 +7,7 @@ import { OrbitControls } from
 import { STLLoader } from
     'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/STLLoader.js';
 
-import { parseParams, formatParamLabel, formatParamLine } from
+import { parseParams, formatParamLabel, formatParamLine, isFilePathParam, displayComment } from
     './params.js';
 
 
@@ -854,9 +854,9 @@ function renderParamsPanel() {
 
             hint.className = "param-hint";
 
-            hint.textContent = param.comment;
+            hint.textContent = displayComment(param.comment);
 
-            hint.title = param.comment;
+            hint.title = displayComment(param.comment);
 
             info.appendChild(hint);
         }
@@ -904,9 +904,59 @@ function renderParamsPanel() {
                 "change",
                 () => writeParamValue(param, input.value)
             );
+
+            if (isFilePathParam(param)) {
+                controlWrap.classList.add("param-control-file");
+                input.placeholder = "(none)";
+                input.title = param.value || "No file chosen";
+            }
         }
 
         controlWrap.appendChild(input);
+
+        if (isFilePathParam(param)) {
+
+            const browse =
+                document.createElement("button");
+
+            browse.type = "button";
+            browse.className = "param-browse";
+            browse.textContent = "Browse\u2026";
+            browse.title = "Choose an image file (SVG, PNG or JPG)";
+
+            browse.addEventListener("click", async () => {
+
+                // Native file dialogs only exist in the desktop app; a
+                // plain browser tab can't expose real file paths.
+                if (!window.pywebview || !window.pywebview.api) {
+                    document.getElementById("output").textContent =
+                        "Browse needs the desktop app. Paste a full file path instead.";
+                    return;
+                }
+
+                const chosen =
+                    await window.pywebview.api.pick_image();
+
+                if (!chosen) {
+                    return;
+                }
+
+                // The value is written back into the script as a Python
+                // string literal, so refuse the rare characters that
+                // would break it rather than silently corrupt the line.
+                if (chosen.includes(param.quote) || chosen.includes("\\")) {
+                    document.getElementById("output").textContent =
+                        "That path contains a quote or backslash and can't be written into the script safely. Rename the file or move it.";
+                    return;
+                }
+
+                input.value = chosen;
+                input.title = chosen;
+                writeParamValue(param, chosen);
+            });
+
+            controlWrap.appendChild(browse);
+        }
 
         row.appendChild(info);
         row.appendChild(controlWrap);
