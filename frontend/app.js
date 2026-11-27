@@ -1283,33 +1283,45 @@ async function checkForRecovery() {
 
 checkForRecovery();
 
-async function checkForUpdate() {
+async function checkForUpdate(manual = false) {
     let info;
     try {
-        const response = await fetch("/update-check");
+        const response = await fetch(manual ? "/update-check?force=true" : "/update-check");
         info = await response.json();
     } catch (error) {
-        return;
-    }
-
-    if (!info.update_available) {
-        return;
+        info = { update_available: false, checked: false, error: "the app's own server didn't answer" };
     }
 
     const banner = document.getElementById("update-banner");
-    document.getElementById("update-text").textContent =
-        `EZPy2STL ${info.latest} is available (you have ${info.current}).`;
+    const text = document.getElementById("update-text");
+    const openButton = document.getElementById("update-open");
+    const dismiss = document.getElementById("update-dismiss");
+
+    if (info.update_available) {
+        text.textContent =
+            `EZPy2STL ${info.latest} is available (you have ${info.current}).`;
+        openButton.style.display = "";
+        dismiss.textContent = "Later";
+    } else if (manual) {
+        text.textContent = info.checked
+            ? `You're up to date (EZPy2STL ${info.current}).`
+            : `Couldn't check for updates: ${info.error || "unknown error"}.`;
+        openButton.style.display = "none";
+        dismiss.textContent = "OK";
+    } else {
+        return;
+    }
+
     banner.classList.add("visible");
-
-    document.getElementById("update-dismiss").addEventListener(
-        "click", () => banner.classList.remove("visible"), { once: true });
-
-    document.getElementById("update-open").addEventListener("click", async () => {
+    dismiss.onclick = () => banner.classList.remove("visible");
+    openButton.onclick = async () => {
         try {
             await fetch("/open-update-page", { method: "POST" });
         } catch (error) { /* nothing useful to show */ }
-    });
+    };
 }
+
+window.checkForUpdateManually = () => checkForUpdate(true);
 
 checkForUpdate();
 

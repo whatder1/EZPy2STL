@@ -5,6 +5,18 @@ follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- Help > Check for Updates...: checks GitHub on demand and says plainly
+  whether you're up to date, an update is available, or why the check
+  couldn't run.
+
+### Fixed
+- The launch-time update check could fail silently in the packaged app
+  (the bundled Python has no usable certificate list, so HTTPS to GitHub
+  failed verification). It now also trusts the certifi bundle shipped in
+  the app, and a failed check is reported instead of hidden when you ask
+  for it from the menu.
+
 ## [0.8.1]
 
 ### Fixed

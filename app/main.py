@@ -62,11 +62,14 @@ _update_info: dict | None = None
 
 
 @app.get("/update-check")
-def update_check():
-    """Newer release on GitHub? Checked once per launch, then cached."""
+def update_check(force: bool = False):
+    """Newer release on GitHub? Checked once per launch, then cached.
+    force=true (the Help menu) checks again. Failed checks are never cached."""
     global _update_info
-    if _update_info is None:
-        _update_info = updates.check_for_update()
+    if force or _update_info is None:
+        result = updates.check_for_update()
+        _update_info = result if result.get("checked") else None
+        return result
     return _update_info
 
 

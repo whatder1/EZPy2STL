@@ -40,7 +40,7 @@ hiddenimports = [
 # Best-effort full collection for the packages most likely to have
 # hidden imports, native binaries, or bundled data files that static
 # analysis would otherwise miss.
-for pkg in ('build123d', 'OCP', 'webview', 'lib3mf', 'PIL', 'potrace'):
+for pkg in ('build123d', 'OCP', 'webview', 'lib3mf', 'PIL', 'potrace', 'certifi'):
     pkg_datas, pkg_binaries, pkg_hiddenimports = collect_all(pkg)
     datas += pkg_datas
     binaries += pkg_binaries
