@@ -5,6 +5,8 @@ follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.8.2]
+
 ### Added
 - Help > Check for Updates...: checks GitHub on demand and says plainly
   whether you're up to date, an update is available, or why the check
