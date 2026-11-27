@@ -11,6 +11,12 @@ export const PARAM_LINE_PATTERN =
     /^([A-Z][A-Z0-9_]*)\s*=\s*(.+?)\s*(#.*)?$/;
 
 
+// Python float/int literals a person would hand-tune: 8, 0.8, .8, 8.,
+// -.8, 1e-3. (Not hex, underscores or complex -- those stay uneditable.)
+const NUMBER_LITERAL =
+    /^-?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/;
+
+
 export function parseParams(scriptText) {
 
     const lines =
@@ -45,7 +51,7 @@ export function parseParams(scriptText) {
             type = "bool";
             value = rawValue === "True";
 
-        } else if (/^-?\d+(\.\d+)?$/.test(rawValue)) {
+        } else if (NUMBER_LITERAL.test(rawValue)) {
 
             type = "number";
             value = Number(rawValue);
@@ -68,7 +74,7 @@ export function parseParams(scriptText) {
             name: name,
             type: type,
             value: value,
-            isFloat: type === "number" && rawValue.includes("."),
+            isFloat: type === "number" && /[.eE]/.test(rawValue),
             quote: type === "string" ? rawValue[0] : null,
             comment:
                 rawComment

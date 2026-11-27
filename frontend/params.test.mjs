@@ -215,3 +215,31 @@ test("[when ...] with an unknown controller never hides the row", () => {
     const params = parseParams('A = 1  # [when MISSING=x] still shown');
     assert.equal(isParamVisible(params[0], params), true);
 });
+
+test("numbers without a leading zero are editable (.8, -.5, 8.)", () => {
+    const params = parseParams("A = .8\nB = -.5  # neg\nC = 8.\n");
+    assert.deepEqual(params.map(p => p.name), ["A", "B", "C"]);
+    assert.deepEqual(params.map(p => p.value), [0.8, -0.5, 8]);
+    assert.ok(params.every(p => p.type === "number" && p.isFloat));
+    assert.equal(params[1].comment, "neg");
+});
+
+test("exponent literals are editable and treated as floats", () => {
+    const params = parseParams("TOL = 1e-3\nBIG = 2E5\n");
+    assert.deepEqual(params.map(p => p.value), [0.001, 200000]);
+    assert.ok(params.every(p => p.isFloat));
+});
+
+test("plain integers stay integer-stepped", () => {
+    assert.equal(parseParams("N = 55\n")[0].isFloat, false);
+});
+
+test("things that only look numeric are still left alone", () => {
+    const params = parseParams("A = .\nB = 1.2.3\nC = 0x1F\nD = 1_000\nE = 1e\nF = -\nG = ..5\n");
+    assert.equal(params.length, 0);
+});
+
+test("an edited bare-decimal line is written back with the new value", () => {
+    const [param] = parseParams("MARGIN = .8  # mm\n");
+    assert.equal(formatParamLine(param, 1.25), "MARGIN = 1.25  # mm");
+});
