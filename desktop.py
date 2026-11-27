@@ -340,6 +340,19 @@ def wait_for_server(timeout=10):
     return False
 
 
+def _menu_check_for_updates():
+    """Help > Check for Updates...: hand off to the page, which shows the
+    result in its banner (up to date / update available / couldn't check)."""
+    for window in webview.windows:
+        window.evaluate_js(
+            "window.checkForUpdateManually && window.checkForUpdateManually()")
+
+
+def build_menu():
+    from webview.menu import Menu, MenuAction
+    return [Menu("Help", [MenuAction("Check for Updates\u2026", _menu_check_for_updates)])]
+
+
 def main():
     global PORT, URL
     PORT = _find_free_port()
@@ -370,7 +383,7 @@ def main():
         resizable=True,
     )
 
-    webview.start()
+    webview.start(menu=build_menu())
 
     logger.info("Window closed, exiting")
 

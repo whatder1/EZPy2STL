@@ -10,9 +10,11 @@ sent. Set EZPY2STL_NO_UPDATE_CHECK=1 to turn it off.
 """
 
 import json
+import logging
 import os
 import plistlib
 import re
+import ssl
 import sys
 import urllib.request
 from pathlib import Path
@@ -20,6 +22,8 @@ from pathlib import Path
 REPO = "whatder1/EZPy2STL"
 LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 RELEASES_PREFIX = f"https://github.com/{REPO}/releases/"
+
+log = logging.getLogger("ezpy2stl.updates")
 
 
 def current_version() -> str | None:
@@ -49,38 +53,61 @@ def parse_version(text: str | None) -> tuple[int, ...] | None:
     return tuple(int(p) for p in match.group(1).split(".")) if match else None
 
 
+def _ssl_context() -> ssl.SSLContext:
+    """A packaged Python often has no usable system CA list, which would make
+    every HTTPS request fail certificate verification. Start from the system's
+    trust (so company proxies keep working) and add certifi's bundle, which
+    ships inside the app."""
+    context = ssl.create_default_context()
+    try:
+        import certifi
+        context.load_verify_locations(cafile=certifi.where())
+    except Exception:
+        pass
+    return context
+
+
 def fetch_latest_release() -> dict | None:
     request = urllib.request.Request(
         LATEST_URL,
         headers={"Accept": "application/vnd.github+json", "User-Agent": "EZPy2STL-update-check"},
     )
-    with urllib.request.urlopen(request, timeout=5) as response:
+    with urllib.request.urlopen(request, timeout=5, context=_ssl_context()) as response:
         return json.load(response)
 
 
 def check_for_update(fetch=fetch_latest_release, current=None) -> dict:
-    """Never raises: any failure just means 'no update to show'."""
-    none = {"update_available": False}
+    """Never raises. Result keys:
+      checked          True if GitHub was reached and its answer understood
+      update_available True only if a newer stable release exists
+      current / latest the two versions (when known)
+      url              the release page (only when an update is available)
+      error            short reason when checked is False
+    """
     if os.environ.get("EZPY2STL_NO_UPDATE_CHECK"):
-        return none
+        return {"update_available": False, "checked": False,
+                "error": "update check is turned off (EZPY2STL_NO_UPDATE_CHECK)"}
     current = current if current is not None else current_version()
     have = parse_version(current)
     if have is None:
-        return none
+        return {"update_available": False, "checked": False,
+                "error": "couldn't read this app's own version"}
     try:
         release = fetch()
-    except Exception:
-        return none
-    if not isinstance(release, dict) or release.get("draft") or release.get("prerelease"):
-        return none
+    except Exception as exc:
+        log.warning("Update check failed: %r", exc)
+        return {"update_available": False, "checked": False,
+                "error": f"couldn't reach GitHub ({type(exc).__name__}: {exc})"[:200]}
+    if not isinstance(release, dict):
+        return {"update_available": False, "checked": False,
+                "error": "unexpected answer from GitHub"}
     latest = release.get("tag_name")
     want = parse_version(latest)
     url = release.get("html_url", "")
-    if want is None or want <= have or not url.startswith(RELEASES_PREFIX):
-        return none
-    return {
-        "update_available": True,
-        "current": current,
-        "latest": latest.lstrip("v"),
-        "url": url,
-    }
+    if release.get("draft") or release.get("prerelease") or want is None:
+        return {"update_available": False, "checked": True, "current": current}
+    result = {"update_available": False, "checked": True,
+              "current": current, "latest": latest.lstrip("v")}
+    if want > have and url.startswith(RELEASES_PREFIX):
+        result.update(update_available=True, url=url)
+    return result

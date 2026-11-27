@@ -36,7 +36,8 @@ def test_numeric_not_string_comparison():
 
 def test_newer_release_is_offered(enabled):
     info = updates.check_for_update(fetch=lambda: release(), current="0.7.2")
-    assert info == {"update_available": True, "current": "0.7.2", "latest": "0.8.0", "url": GOOD_URL}
+    assert info == {"update_available": True, "checked": True, "current": "0.7.2",
+                    "latest": "0.8.0", "url": GOOD_URL}
 
 
 @pytest.mark.parametrize("tag", ["v0.7.2", "v0.7.1", "v0.7.2-rc1"])
@@ -54,14 +55,29 @@ def test_foreign_url_is_ignored(enabled):
     assert not updates.check_for_update(fetch=lambda: bad, current="0.7.2")["update_available"]
 
 
-def test_network_failure_is_silent(enabled):
+def test_network_failure_reports_why(enabled):
     def boom():
         raise OSError("offline")
-    assert updates.check_for_update(fetch=boom, current="0.7.2") == {"update_available": False}
+    info = updates.check_for_update(fetch=boom, current="0.7.2")
+    assert info["update_available"] is False and info["checked"] is False
+    assert "offline" in info["error"] and "OSError" in info["error"]
 
 
-def test_unknown_current_version_is_silent(enabled):
-    assert not updates.check_for_update(fetch=lambda: release(), current="not-a-version")["update_available"]
+def test_up_to_date_is_a_successful_check(enabled):
+    info = updates.check_for_update(fetch=lambda: release("v0.7.2"), current="0.7.2")
+    assert info["checked"] is True and info["update_available"] is False
+    assert info["current"] == "0.7.2" and info["latest"] == "0.7.2"
+
+
+def test_ssl_context_uses_the_bundled_ca_list():
+    import certifi, ssl
+    assert isinstance(updates._ssl_context(), ssl.SSLContext)
+    assert certifi.where()  # the file PyInstaller bundles with the app
+
+
+def test_unknown_current_version_says_so(enabled):
+    info = updates.check_for_update(fetch=lambda: release(), current="not-a-version")
+    assert info["checked"] is False and "version" in info["error"]
 
 
 def test_opt_out_env_var_never_fetches(monkeypatch):
@@ -69,7 +85,8 @@ def test_opt_out_env_var_never_fetches(monkeypatch):
 
     def must_not_run():
         raise AssertionError("fetched despite opt-out")
-    assert not updates.check_for_update(fetch=must_not_run, current="0.7.2")["update_available"]
+    info = updates.check_for_update(fetch=must_not_run, current="0.7.2")
+    assert info["checked"] is False and "turned off" in info["error"]
 
 
 def test_dev_version_is_read_from_pyproject():
@@ -87,11 +104,22 @@ def client(monkeypatch):
 def test_endpoint_reports_and_caches(client, monkeypatch):
     calls = []
     monkeypatch.setattr(main.updates, "check_for_update",
-                        lambda: calls.append(1) or {"update_available": True, "url": GOOD_URL,
-                                                    "current": "0.7.2", "latest": "0.8.0"})
+                        lambda: calls.append(1) or {"update_available": True, "checked": True,
+                                                    "url": GOOD_URL, "current": "0.7.2",
+                                                    "latest": "0.8.0"})
     assert client.get("/update-check").json()["latest"] == "0.8.0"
     client.get("/update-check")
     assert len(calls) == 1
+    client.get("/update-check?force=true")  # the Help menu always re-checks
+    assert len(calls) == 2
+
+
+def test_failed_checks_are_not_cached(client, monkeypatch):
+    results = iter([{"update_available": False, "checked": False, "error": "offline"},
+                    {"update_available": False, "checked": True, "current": "0.8.1", "latest": "0.8.1"}])
+    monkeypatch.setattr(main.updates, "check_for_update", lambda: next(results))
+    assert client.get("/update-check").json()["checked"] is False
+    assert client.get("/update-check").json()["checked"] is True
 
 
 def test_open_page_refuses_without_an_update(client):
@@ -108,3 +136,25 @@ def test_open_page_only_opens_the_validated_url(client, monkeypatch):
     monkeypatch.setattr(main, "_update_info",
                         {"update_available": True, "url": "https://evil.example.com/x"})
     assert client.post("/open-update-page").status_code == 404
+
+
+def test_help_menu_is_wired_to_the_page():
+    """desktop.py builds a Help menu whose action calls the page's manual check."""
+    import desktop
+    [menu] = desktop.build_menu()
+    assert menu.title == "Help"
+    [action] = menu.items
+    assert "Check for Updates" in action.title
+
+    calls = []
+
+    class FakeWindow:
+        def evaluate_js(self, js):
+            calls.append(js)
+
+    desktop.webview.windows[:] = [FakeWindow()]
+    try:
+        action.function()
+    finally:
+        desktop.webview.windows[:] = []
+    assert calls == ["window.checkForUpdateManually && window.checkForUpdateManually()"]
