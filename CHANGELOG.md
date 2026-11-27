@@ -5,6 +5,10 @@ follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- Settings written without a leading zero (`.8`, `-.5`, `8.`) or in exponent
+  form (`1e-3`) now show up as editable fields in the parameter panel.
+
 ## [0.8.0]
 
 ### Added
